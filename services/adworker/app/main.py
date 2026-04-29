@@ -758,11 +758,15 @@ def _execute_vpn_user(payload: VpnUserRequest) -> VpnUserResult:
                 raise HTTPException(status_code=502, detail=detail)
             vpn_value: str = "TRUE"
         else:
-            ok_dialin = conn.modify(current_dn, {"msNPAllowDialin": [(MODIFY_DELETE, [])]})
-            if not ok_dialin:
-                detail = conn.result.get("message") or conn.last_error or "Falha ao limpar msNPAllowDialin."
-                raise HTTPException(status_code=502, detail=detail)
-            vpn_value = "NOT_SET"
+            if previous_vpn_value == "NOT_SET":
+                # Atributo já está ausente no AD — MODIFY_DELETE falharia com "No such attribute".
+                vpn_value = "NOT_SET"
+            else:
+                ok_dialin = conn.modify(current_dn, {"msNPAllowDialin": [(MODIFY_DELETE, [])]})
+                if not ok_dialin:
+                    detail = conn.result.get("message") or conn.last_error or "Falha ao limpar msNPAllowDialin."
+                    raise HTTPException(status_code=502, detail=detail)
+                vpn_value = "NOT_SET"
 
         member_dns = _get_member_of(conn, current_dn)
         member_dns_upper = {str(d).strip().upper() for d in member_dns}
