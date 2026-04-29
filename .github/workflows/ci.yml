@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shell-lint-typecheck:
+    name: Shell — lint & typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: shell/package-lock.json
+      - run: npm ci
+        working-directory: shell
+      - run: npm run typecheck
+        working-directory: shell
+
+  vpn-frontend-typecheck:
+    name: VPN frontend — typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: modules/vpn/frontend/package-lock.json
+      - run: npm ci
+        working-directory: modules/vpn/frontend
+      - run: npm run typecheck
+        working-directory: modules/vpn/frontend
+
+  vpn-backend-test:
+    name: VPN backend — tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest pytest-cov
+        working-directory: modules/vpn/backend
+      - run: python -m pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+        working-directory: modules/vpn/backend
+
+  registry-test:
+    name: Registry — tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: commandops_test
+          POSTGRES_USER: commandops
+          POSTGRES_PASSWORD: commandops
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest pytest-cov httpx
+        working-directory: registry
+      - run: python -m pytest tests/ -v --tb=short
+        working-directory: registry
+        env:
+          POSTGRES_URL: postgresql://commandops:commandops@localhost:5432/commandops_test
+
+  shell-build:
+    name: Shell — build
+    runs-on: ubuntu-latest
+    needs: [shell-lint-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: shell/package-lock.json
+      - run: npm ci
+        working-directory: shell
+      - run: npm run build
+        working-directory: shell
+
+  vpn-build:
+    name: VPN frontend — build
+    runs-on: ubuntu-latest
+    needs: [vpn-frontend-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: modules/vpn/frontend/package-lock.json
+      - run: npm ci
+        working-directory: modules/vpn/frontend
+      - run: npm run build
+        working-directory: modules/vpn/frontend

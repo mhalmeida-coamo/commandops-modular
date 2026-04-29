@@ -1,0 +1,15 @@
+{
+  "id": "vpn",
+  "name": "VPN",
+  "description": "Gerenciamento de túneis VPN e conectividade remota",
+  "version": "1.0.0",
+  "min_shell_version": "0.1.0",
+  "nav_label": "VPN",
+  "nav_order": 1,
+  "icon": "🔐",
+  "remote_entry": "/assets/remoteEntry.js",
+  "exposed_component": "./ModuleView",
+  "api_prefix": "/api/vpn",
+  "required_roles": ["admin", "operador"],
+  "health_endpoint": "/health"
+}

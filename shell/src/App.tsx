@@ -1,0 +1,173 @@
+import { useState } from "react";
+import type { AppLanguage, ModuleManifest, UserInfo } from "./types";
+import { useTheme } from "./hooks/useTheme";
+import { useModules } from "./hooks/useModules";
+import { Sidebar } from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
+import { ModuleLoader } from "./components/ModuleLoader";
+
+const TOKEN_KEY = "commandops_token";
+
+type AuthState = {
+  token: string;
+  user: UserInfo;
+} | null;
+
+function loadAuth(): AuthState {
+  try {
+    const raw = sessionStorage.getItem(TOKEN_KEY);
+    return raw ? (JSON.parse(raw) as AuthState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAuth(state: AuthState) {
+  if (state) {
+    sessionStorage.setItem(TOKEN_KEY, JSON.stringify(state));
+  } else {
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+export function App() {
+  const { theme, toggle: toggleTheme } = useTheme();
+  const [language] = useState<AppLanguage>("pt-BR");
+  const [auth, setAuth] = useState<AuthState>(loadAuth);
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const { modules, loading: modulesLoading } = useModules(auth?.token ?? null);
+
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const activeModule: ModuleManifest | null =
+    modules.find((m) => m.id === activeModuleId) ?? modules[0] ?? null;
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
+
+    try {
+      const res = await fetch("/registry/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginForm),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json()) as { detail?: string };
+        throw new Error(err.detail ?? "Credenciais inválidas");
+      }
+
+      const data = (await res.json()) as { token: string; user: UserInfo };
+      const state = { token: data.token, user: data.user };
+      saveAuth(state);
+      setAuth(state);
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Erro ao autenticar");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    saveAuth(null);
+    setAuth(null);
+    setActiveModuleId(null);
+  }
+
+  if (!auth) {
+    return (
+      <div className="login">
+        <form className="login-card" onSubmit={handleLogin}>
+          <img
+            src="/favicon.png"
+            alt="CommandOps"
+            className="login-logo"
+            style={{ height: 36 }}
+          />
+          <div>
+            <div className="login-title">CommandOps</div>
+            <div className="login-subtitle">Operations console</div>
+          </div>
+
+          {loginError && <div className="alert">{loginError}</div>}
+
+          <label className="label">
+            Usuário
+            <input
+              className="input"
+              value={loginForm.username}
+              onChange={(e) => setLoginForm((f) => ({ ...f, username: e.target.value }))}
+              autoFocus
+            />
+          </label>
+
+          <label className="label">
+            Senha
+            <input
+              className="input"
+              type="password"
+              value={loginForm.password}
+              onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
+            />
+          </label>
+
+          <button className="button" type="submit" disabled={loginLoading}>
+            {loginLoading ? "Autenticando…" : "Entrar"}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shell">
+      <Sidebar
+        modules={modules}
+        activeModuleId={activeModule?.id ?? null}
+        collapsed={sidebarCollapsed}
+        onNavigate={setActiveModuleId}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+      />
+
+      <div className="shell-main">
+        <Topbar
+          activeModule={activeModule}
+          user={auth.user}
+          theme={theme}
+          onThemeToggle={toggleTheme}
+          onLogout={handleLogout}
+        />
+
+        <main className="shell-content">
+          {modulesLoading ? (
+            <div className="module-loading">
+              <span className="spinner" />
+              <span>Carregando módulos…</span>
+            </div>
+          ) : activeModule ? (
+            <ModuleLoader
+              module={activeModule}
+              moduleProps={{
+                token: auth.token,
+                user: auth.user,
+                apiBase: activeModule.api_url,
+                theme,
+                language,
+              }}
+            />
+          ) : (
+            <div className="module-loading">
+              <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}

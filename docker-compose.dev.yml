@@ -1,0 +1,26 @@
+# Desenvolvimento com hot reload — sobrepõe o docker-compose.yml
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ou:  make dev
+
+services:
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  registry:
+    build: ~
+    image: ~
+    volumes:
+      - ./registry:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "5010:8000"
+
+  # Em dev, o shell e os módulos rodam com Vite HMR (fora do Docker)
+  # Use `make dev-shell` e `make dev-module MODULE=vpn`
+  shell:
+    profiles: ["prod-only"]
+
+  vpn:
+    profiles: ["prod-only"]
