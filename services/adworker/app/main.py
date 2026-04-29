@@ -737,7 +737,7 @@ def _execute_vpn_user(payload: VpnUserRequest) -> VpnUserResult:
             search_base=user_dn,
             search_filter="(objectClass=*)",
             search_scope=BASE,
-            attributes=["displayName", "sAMAccountName", "distinguishedName", "memberOf", "company"],
+            attributes=["displayName", "sAMAccountName", "distinguishedName", "memberOf", "company", "msNPAllowDialin"],
             size_limit=1,
         )
         if not ok or not conn.entries:
@@ -748,6 +748,7 @@ def _execute_vpn_user(payload: VpnUserRequest) -> VpnUserResult:
         display_name = _first_attr(attrs, "displayName") or login
         current_dn = _first_attr(attrs, "distinguishedName") or user_dn
         company = _first_attr(attrs, "company")
+        previous_vpn_value: str = "TRUE" if str(_first_attr(attrs, "msNPAllowDialin")).upper() == "TRUE" else "NOT_SET"
 
         # Atualiza msNPAllowDialin
         if payload.enabled:
@@ -829,6 +830,7 @@ def _execute_vpn_user(payload: VpnUserRequest) -> VpnUserResult:
             login=login,
             display_name=display_name,
             user_dn=current_dn,
+            previous_vpn_value=previous_vpn_value,
             vpn_value=vpn_value,
             bloqueio_ext_action=bloqueio_ext_action,
             internet_mail_action=internet_mail_action,

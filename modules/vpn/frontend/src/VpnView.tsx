@@ -13,6 +13,7 @@ type GroupAction = "removed" | "added" | "already_absent" | "already_present" | 
 
 type VpnResult = {
   login: string;
+  previous_vpn_value: "TRUE" | "NOT_SET";
   vpn_value: "TRUE" | "NOT_SET";
   bloqueio_ext_action: GroupAction;
   internet_mail_action: GroupAction;
@@ -45,8 +46,8 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
   const [appliedEnabled, setAppliedEnabled] = useState(true);
 
   function alreadyInState(r: VpnResult): boolean {
-    if (appliedEnabled) return r.bloqueio_ext_action === "already_absent";
-    return r.bloqueio_ext_action === "already_present";
+    if (appliedEnabled) return r.previous_vpn_value === "TRUE";
+    return r.previous_vpn_value === "NOT_SET";
   }
 
   async function handleSubmit(e: React.FormEvent) {

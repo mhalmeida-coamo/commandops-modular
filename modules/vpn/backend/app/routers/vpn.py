@@ -20,8 +20,9 @@ class VpnProcessIn(BaseModel):
 
 class VpnResult(BaseModel):
     login: str
-    vpn_value: str                    # "TRUE" | "NOT_SET"
-    bloqueio_ext_action: GroupAction  # ação no grupo CA - Bloqueio Ext
+    previous_vpn_value: str           # "TRUE" | "NOT_SET" — msNPAllowDialin antes da operação
+    vpn_value: str                    # "TRUE" | "NOT_SET" — após a operação
+    bloqueio_ext_action: GroupAction
     internet_mail_action: GroupAction
     internet_mail_group: str
     warnings: list[str] = []

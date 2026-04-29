@@ -230,7 +230,8 @@ class VpnUserResult(BaseModel):
     login: str
     display_name: str
     user_dn: str
-    vpn_value: Literal["TRUE", "NOT_SET"]
+    previous_vpn_value: Literal["TRUE", "NOT_SET"]  # valor de msNPAllowDialin antes da operação
+    vpn_value: Literal["TRUE", "NOT_SET"]            # valor após a operação
     # CA - Bloqueio Ext: removido ao habilitar VPN, adicionado ao desabilitar
     bloqueio_ext_action: GroupAction
     # InternetMail: adicionado ao habilitar VPN (se ausente), removido ao desabilitar (se Bloqueio_envio presente)
