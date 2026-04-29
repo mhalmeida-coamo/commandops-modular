@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ErrorInfo, type ReactNode } from "react";
+import { Component, lazy, Suspense, type ComponentType, type ErrorInfo, type ReactNode } from "react";
 import type { ModuleManifest, ModuleProps } from "../types";
 
 type Props = {
@@ -41,9 +41,9 @@ class ModuleErrorBoundary extends Component<
   }
 }
 
-const moduleCache = new Map<string, React.ComponentType<ModuleProps>>();
+const moduleCache = new Map<string, ComponentType<ModuleProps>>();
 
-function loadRemoteComponent(mod: ModuleManifest): React.ComponentType<ModuleProps> {
+function loadRemoteComponent(mod: ModuleManifest): ComponentType<ModuleProps> {
   if (moduleCache.has(mod.id)) {
     return moduleCache.get(mod.id)!;
   }
@@ -60,7 +60,7 @@ function loadRemoteComponent(mod: ModuleManifest): React.ComponentType<ModulePro
     });
 
     const container = (window as unknown as Record<string, unknown>)[`${mod.id}_module`] as {
-      get: (module: string) => Promise<() => { default: React.ComponentType<ModuleProps> }>;
+      get: (module: string) => Promise<() => { default: ComponentType<ModuleProps> }>;
       init: (shareScope: unknown) => Promise<void>;
     };
 

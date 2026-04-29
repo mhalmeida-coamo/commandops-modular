@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import type { AppLanguage, ModuleManifest, UserInfo } from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useModules } from "./hooks/useModules";
@@ -46,7 +46,7 @@ export function App() {
   const activeModule: ModuleManifest | null =
     modules.find((m) => m.id === activeModuleId) ?? modules[0] ?? null;
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setLoginError("");
     setLoginLoading(true);
