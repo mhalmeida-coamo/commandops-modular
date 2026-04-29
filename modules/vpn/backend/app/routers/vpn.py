@@ -3,11 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 import httpx
 from app.auth import TokenUser, verify_token
+from app.settings_client import get_vpn_settings
 
 router = APIRouter(prefix="/api/vpn", tags=["vpn"])
 
-AD_WORKER_URL = os.environ.get("AD_WORKER_URL", "").strip().rstrip("/")
-AD_WORKER_TOKEN = os.environ.get("AD_WORKER_TOKEN", "").strip()
 AD_WORKER_TIMEOUT = int(os.environ.get("AD_WORKER_TIMEOUT_SECONDS", "30"))
 
 
@@ -35,10 +34,14 @@ async def process(
     payload: VpnProcessIn,
     user: TokenUser = Depends(verify_token),
 ) -> VpnProcessOut:
-    if not AD_WORKER_URL or not AD_WORKER_TOKEN:
+    cfg = await get_vpn_settings()
+    ad_worker_url = cfg.get("AD_WORKER_URL", "").strip().rstrip("/")
+    ad_worker_token = cfg.get("AD_WORKER_TOKEN", "").strip()
+
+    if not ad_worker_url or not ad_worker_token:
         raise HTTPException(
             status_code=503,
-            detail="AD Worker não configurado. Defina AD_WORKER_URL e AD_WORKER_TOKEN.",
+            detail="AD Worker não configurado. Defina AD_WORKER_URL e AD_WORKER_TOKEN no painel admin.",
         )
 
     body = {
@@ -50,9 +53,9 @@ async def process(
     try:
         async with httpx.AsyncClient(timeout=AD_WORKER_TIMEOUT) as client:
             res = await client.post(
-                f"{AD_WORKER_URL}/operations/vpn-user/execute",
+                f"{ad_worker_url}/operations/vpn-user/execute",
                 json=body,
-                headers={"X-Worker-Token": AD_WORKER_TOKEN},
+                headers={"X-Worker-Token": ad_worker_token},
             )
     except httpx.TimeoutException as exc:
         raise HTTPException(status_code=504, detail="AD Worker timeout") from exc

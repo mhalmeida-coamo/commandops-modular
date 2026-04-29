@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-in-prod"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
+    service_secret: str = "dev-service-secret-change-in-prod"
 
     class Config:
         env_file = ".env"

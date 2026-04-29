@@ -5,6 +5,7 @@ import { useModules } from "./hooks/useModules";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { ModuleLoader } from "./components/ModuleLoader";
+import { AdminPanel } from "./components/AdminPanel";
 
 const TOKEN_KEY = "commandops_token";
 
@@ -35,6 +36,7 @@ export function App() {
   const [language] = useState<AppLanguage>("pt-BR");
   const [auth, setAuth] = useState<AuthState>(loadAuth);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { modules, loading: modulesLoading } = useModules(auth?.token ?? null);
@@ -77,6 +79,17 @@ export function App() {
   function handleLogout() {
     saveAuth(null);
     setAuth(null);
+    setActiveModuleId(null);
+    setShowAdmin(false);
+  }
+
+  function handleNavigate(moduleId: string) {
+    setShowAdmin(false);
+    setActiveModuleId(moduleId);
+  }
+
+  function handleAdminOpen() {
+    setShowAdmin(true);
     setActiveModuleId(null);
   }
 
@@ -129,9 +142,11 @@ export function App() {
     <div className="shell">
       <Sidebar
         modules={modules}
-        activeModuleId={activeModule?.id ?? null}
+        activeModuleId={showAdmin ? "__admin__" : (activeModule?.id ?? null)}
         collapsed={sidebarCollapsed}
-        onNavigate={setActiveModuleId}
+        isPlatformAdmin={auth.user.is_platform_admin}
+        onNavigate={handleNavigate}
+        onAdminOpen={handleAdminOpen}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
@@ -150,6 +165,8 @@ export function App() {
               <span className="spinner" />
               <span>Carregando módulos…</span>
             </div>
+          ) : showAdmin ? (
+            <AdminPanel modules={modules} token={auth.token} />
           ) : activeModule ? (
             <ModuleLoader
               module={activeModule}

@@ -22,6 +22,12 @@ export type ModuleManifest = {
   health: "healthy" | "degraded" | "unreachable";
 };
 
+export type ModuleSetting = {
+  key: string;
+  value: string;
+  is_secret: boolean;
+};
+
 export type ModuleProps = {
   token: string;
   user: UserInfo;

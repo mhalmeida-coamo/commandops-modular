@@ -4,11 +4,21 @@ type Props = {
   modules: ModuleManifest[];
   activeModuleId: string | null;
   collapsed: boolean;
+  isPlatformAdmin: boolean;
   onNavigate: (moduleId: string) => void;
+  onAdminOpen: () => void;
   onToggleCollapse: () => void;
 };
 
-export function Sidebar({ modules, activeModuleId, collapsed, onNavigate, onToggleCollapse }: Props) {
+export function Sidebar({
+  modules,
+  activeModuleId,
+  collapsed,
+  isPlatformAdmin,
+  onNavigate,
+  onAdminOpen,
+  onToggleCollapse,
+}: Props) {
   return (
     <aside className={`shell-sidebar${collapsed ? " collapsed" : ""}`}>
       <div className="shell-sidebar-logo">
@@ -30,15 +40,28 @@ export function Sidebar({ modules, activeModuleId, collapsed, onNavigate, onTogg
         ))}
       </nav>
 
-      <button
-        className="shell-nav-item"
-        style={{ margin: "8px", width: "auto" }}
-        onClick={onToggleCollapse}
-        title={collapsed ? "Expandir menu" : "Recolher menu"}
-      >
-        <span className="shell-nav-item-icon">{collapsed ? "→" : "←"}</span>
-        {!collapsed && <span className="shell-nav-item-label">Recolher</span>}
-      </button>
+      <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: 2 }}>
+        {isPlatformAdmin && (
+          <button
+            className={`shell-nav-item${activeModuleId === "__admin__" ? " active" : ""}`}
+            onClick={onAdminOpen}
+            title={collapsed ? "Administração" : undefined}
+          >
+            <span className="shell-nav-item-icon">🛠️</span>
+            {!collapsed && <span className="shell-nav-item-label">Administração</span>}
+          </button>
+        )}
+
+        <button
+          className="shell-nav-item"
+          style={{ width: "auto" }}
+          onClick={onToggleCollapse}
+          title={collapsed ? "Expandir menu" : "Recolher menu"}
+        >
+          <span className="shell-nav-item-icon">{collapsed ? "→" : "←"}</span>
+          {!collapsed && <span className="shell-nav-item-label">Recolher</span>}
+        </button>
+      </div>
     </aside>
   );
 }

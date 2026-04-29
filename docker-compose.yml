@@ -26,6 +26,7 @@ services:
       POSTGRES_URL: postgresql://commandops:commandops@postgres:5432/commandops_registry
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
       VPN_PUBLIC_URL: ${VPN_PUBLIC_URL:-http://localhost:5101}
       VPN_INTERNAL_URL: http://vpn:8080
     ports:
@@ -47,6 +48,8 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
       SHELL_ORIGIN: http://localhost:5000
+      REGISTRY_URL: http://registry:8000
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
     ports:
       - "5101:8080"
     healthcheck:

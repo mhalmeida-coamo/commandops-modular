@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.db.base import Base, engine, SessionLocal
 from app.models.module import Module
+from app.models.module_setting import ModuleSetting
 from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -14,6 +15,13 @@ VPN_PUBLIC_URL     = os.environ.get("VPN_PUBLIC_URL",     "http://localhost:5101
 VPN_INTERNAL_URL   = os.environ.get("VPN_INTERNAL_URL",   "http://vpn:8080")
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+
+SETTINGS_SEED: dict[str, list[dict]] = {
+    "vpn": [
+        {"key": "AD_WORKER_URL",   "value": "", "is_secret": False},
+        {"key": "AD_WORKER_TOKEN", "value": "", "is_secret": True},
+    ],
+}
 
 MODULES_SEED = [
     {
@@ -61,6 +69,20 @@ def seed(db: Session) -> None:
                 required_roles=data["required_roles"],
                 enabled=True,
             ))
+
+    for module_id, setting_list in SETTINGS_SEED.items():
+        existing_keys = {
+            r.key
+            for r in db.query(ModuleSetting).filter(ModuleSetting.module_id == module_id).all()
+        }
+        for s in setting_list:
+            if s["key"] not in existing_keys:
+                db.add(ModuleSetting(
+                    module_id=module_id,
+                    key=s["key"],
+                    value=s["value"],
+                    is_secret=s["is_secret"],
+                ))
 
     db.commit()
 
