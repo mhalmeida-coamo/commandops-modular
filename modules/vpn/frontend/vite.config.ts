@@ -25,8 +25,5 @@ export default defineConfig({
     target: "esnext",
     minify: false,
     cssCodeSplit: false,
-    rollupOptions: {
-      input: "./src/VpnView.tsx",
-    },
   },
 });
