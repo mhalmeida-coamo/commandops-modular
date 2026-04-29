@@ -42,6 +42,12 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<VpnResult | null>(null);
+  const [appliedEnabled, setAppliedEnabled] = useState(true);
+
+  function alreadyInState(r: VpnResult): boolean {
+    if (appliedEnabled) return r.bloqueio_ext_action === "already_absent";
+    return r.bloqueio_ext_action === "already_present";
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +55,7 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
     setError("");
     setResult(null);
     setLoading(true);
+    const requestedEnabled = enabled;
     try {
       const res = await fetch(`${apiBase}/api/vpn/process`, {
         method: "POST",
@@ -56,13 +63,14 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ username: username.trim(), enabled }),
+        body: JSON.stringify({ username: username.trim(), enabled: requestedEnabled }),
       });
       if (!res.ok) {
         const err = (await res.json()) as { detail?: string };
         throw new Error(err.detail ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as VpnResponse;
+      setAppliedEnabled(requestedEnabled);
       setResult(data.result);
       setUsername("");
     } catch (err) {
@@ -153,36 +161,46 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
 
       {result && (
         <div className={styles.results}>
-          <div className={styles.resultGrid}>
-            <div>
-              <span>{t("Login", "Login")}</span>
-              <strong>{result.login}</strong>
-            </div>
-            <div>
-              <span>{t("Dial-in", "Dial-in")}</span>
-              <strong>{result.vpn_value === "TRUE" ? "TRUE" : "NOT SET"}</strong>
-            </div>
-            <div>
-              <span>{t("CA - Bloqueio Ext", "CA - Block Ext")}</span>
-              <strong>{GROUP_ACTION_LABEL[result.bloqueio_ext_action] ?? result.bloqueio_ext_action}</strong>
-            </div>
-            <div>
-              <span>{t("InternetMail", "InternetMail")}</span>
-              <strong>
-                {GROUP_ACTION_LABEL[result.internet_mail_action] ?? result.internet_mail_action}
-                {" "}
-                <span style={{ fontWeight: 400, opacity: 0.7 }}>({result.internet_mail_group})</span>
-              </strong>
-            </div>
-          </div>
-          {result.warnings?.length ? (
+          {alreadyInState(result) ? (
             <div className={styles.logWarn}>
-              {t("Avisos:", "Warnings:")} {result.warnings.join(" | ")}
+              {appliedEnabled
+                ? t("Usuário já possui acesso VPN.", "User already has VPN access.")
+                : t("Usuário não possui acesso a VPN.", "User does not have VPN access.")}
             </div>
           ) : (
-            <div className={styles.logOk}>
-              {t("Política VPN aplicada com sucesso.", "VPN policy applied successfully.")}
-            </div>
+            <>
+              <div className={styles.resultGrid}>
+                <div>
+                  <span>{t("Login", "Login")}</span>
+                  <strong>{result.login}</strong>
+                </div>
+                <div>
+                  <span>{t("Dial-in", "Dial-in")}</span>
+                  <strong>{result.vpn_value === "TRUE" ? "TRUE" : "NOT SET"}</strong>
+                </div>
+                <div>
+                  <span>{t("CA - Bloqueio Ext", "CA - Block Ext")}</span>
+                  <strong>{GROUP_ACTION_LABEL[result.bloqueio_ext_action] ?? result.bloqueio_ext_action}</strong>
+                </div>
+                <div>
+                  <span>{t("InternetMail", "InternetMail")}</span>
+                  <strong>
+                    {GROUP_ACTION_LABEL[result.internet_mail_action] ?? result.internet_mail_action}
+                    {" "}
+                    <span style={{ fontWeight: 400, opacity: 0.7 }}>({result.internet_mail_group})</span>
+                  </strong>
+                </div>
+              </div>
+              {result.warnings?.length ? (
+                <div className={styles.logWarn}>
+                  {t("Avisos:", "Warnings:")} {result.warnings.join(" | ")}
+                </div>
+              ) : (
+                <div className={styles.logOk}>
+                  {t("Política VPN aplicada com sucesso.", "VPN policy applied successfully.")}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
