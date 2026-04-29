@@ -48,42 +48,34 @@ class ModuleErrorBoundary extends Component<
   }
 }
 
-type RemoteContainer = {
-  init: (scope: Record<string, unknown>) => Promise<void>;
-  get: (module: string) => Promise<() => { default: ComponentType<ModuleProps> }>;
-};
+/**
+ * Mapa de módulos conhecidos pelo shell.
+ * Cada entrada usa import() estático resolvido pelo Vite em build time —
+ * requisito do @originjs/vite-plugin-federation.
+ * Adicionar um novo tipo de módulo = nova entrada aqui + declaração no vite.config.ts.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MODULE_REGISTRY: Record<string, ComponentType<any>> = {};
 
-const moduleCache = new Map<string, ComponentType<ModuleProps>>();
-
-function loadRemoteComponent(mod: ModuleManifest): ComponentType<ModuleProps> {
-  if (moduleCache.has(mod.id)) {
-    return moduleCache.get(mod.id)!;
-  }
-
-  const LazyComponent = lazy(async () => {
-    // @originjs/vite-plugin-federation gera ES modules — import dinâmico direto
-    const container = (await import(/* @vite-ignore */ mod.remote_url)) as RemoteContainer;
-
-    if (!container?.get || !container?.init) {
-      throw new Error(
-        `remoteEntry inválido em "${mod.remote_url}" — não exporta get/init`
-      );
-    }
-
-    // Escopo vazio: o remote usa seu próprio React bundled (singleton declarado no vite.config)
-    await container.init({});
-
-    const factory = await container.get("./ModuleView");
-    const Module = factory();
-    return { default: Module.default };
-  });
-
-  moduleCache.set(mod.id, LazyComponent);
-  return LazyComponent;
-}
+const VpnModule = lazy(() =>
+  // @ts-expect-error — remote declarado no vite.config.ts
+  import("vpn_module/ModuleView").then((m: { default: ComponentType<ModuleProps> }) => ({
+    default: m.default,
+  }))
+);
+MODULE_REGISTRY["vpn"] = VpnModule;
 
 export function ModuleLoader({ module: mod, moduleProps }: Props) {
-  const RemoteComponent = loadRemoteComponent(mod);
+  const RemoteComponent = MODULE_REGISTRY[mod.id];
+
+  if (!RemoteComponent) {
+    return (
+      <div className="module-error">
+        <h3>Módulo não suportado</h3>
+        <p>O módulo "{mod.id}" não está registrado nesta versão do shell.</p>
+      </div>
+    );
+  }
 
   return (
     <ModuleErrorBoundary moduleId={mod.id}>

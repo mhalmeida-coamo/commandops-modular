@@ -5,12 +5,17 @@ import federation from "@originjs/vite-plugin-federation";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
+  // URLs dos remotes — configuráveis por variável de ambiente
+  const VPN_REMOTE = env.VITE_VPN_REMOTE || "http://localhost:5101/assets/remoteEntry.js";
+
   return {
     plugins: [
       react(),
       federation({
         name: "commandops_shell",
-        remotes: {},
+        remotes: {
+          vpn_module: VPN_REMOTE,
+        },
         shared: {
           react: { singleton: true, requiredVersion: "^18.0.0" },
           "react-dom": { singleton: true, requiredVersion: "^18.0.0" },
