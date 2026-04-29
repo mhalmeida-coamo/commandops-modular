@@ -59,7 +59,7 @@ function loadRemoteComponent(mod: ModuleManifest): React.ComponentType<ModulePro
       document.head.appendChild(script);
     });
 
-    const container = (window as Record<string, unknown>)[`${mod.id}_module`] as {
+    const container = (window as unknown as Record<string, unknown>)[`${mod.id}_module`] as {
       get: (module: string) => Promise<() => { default: React.ComponentType<ModuleProps> }>;
       init: (shareScope: unknown) => Promise<void>;
     };

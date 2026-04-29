@@ -33,6 +33,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# SQLite (usado em testes)
+*.db
+
 # Coverage
 .coverage
 htmlcov/
