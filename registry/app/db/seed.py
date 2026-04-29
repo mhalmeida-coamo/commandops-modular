@@ -1,4 +1,4 @@
-"""Seed inicial: cria usuário admin e registra o módulo VPN."""
+"""Seed inicial: cria usuário admin e registra módulos."""
 import os
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -8,12 +8,31 @@ from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-VPN_MODULE_URL = os.environ.get("VPN_MODULE_URL", "http://localhost:5101")
+# URLs públicas (browser) — configurar via env em cada ambiente
+VPN_PUBLIC_URL     = os.environ.get("VPN_PUBLIC_URL",     "http://localhost:5101")
+# URLs internas Docker — usadas apenas para health check do registry
+VPN_INTERNAL_URL   = os.environ.get("VPN_INTERNAL_URL",   "http://vpn:8080")
+
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+
+MODULES_SEED = [
+    {
+        "id": "vpn",
+        "name": "VPN",
+        "description": "Gerenciamento de túneis VPN e conectividade remota",
+        "version": "1.0.0",
+        "nav_label": "VPN",
+        "nav_order": 1,
+        "icon": "🔐",
+        "remote_url":  f"{VPN_PUBLIC_URL}/assets/remoteEntry.js",
+        "api_url":     VPN_PUBLIC_URL,
+        "health_url":  VPN_INTERNAL_URL,
+        "required_roles": ["admin", "operador"],
+    },
+]
 
 
 def seed(db: Session) -> None:
-    # Admin user
     if not db.query(User).filter(User.username == "admin").first():
         db.add(
             User(
@@ -25,24 +44,23 @@ def seed(db: Session) -> None:
             )
         )
 
-    # VPN module
-    if not db.query(Module).filter(Module.id == "vpn").first():
-        db.add(
-            Module(
-                id="vpn",
-                name="VPN",
-                description="Gerenciamento de túneis VPN",
-                version="1.0.0",
+    for data in MODULES_SEED:
+        if not db.query(Module).filter(Module.id == data["id"]).first():
+            db.add(Module(
+                id=data["id"],
+                name=data["name"],
+                description=data["description"],
+                version=data["version"],
                 status="enabled",
-                nav_label="VPN",
-                nav_order=1,
-                icon="🔐",
-                remote_url=f"{VPN_MODULE_URL}/assets/remoteEntry.js",
-                api_url=f"{VPN_MODULE_URL}",
-                required_roles=["admin", "operador"],
+                nav_label=data["nav_label"],
+                nav_order=data["nav_order"],
+                icon=data["icon"],
+                remote_url=data["remote_url"],
+                api_url=data["api_url"],
+                health_url=data.get("health_url"),
+                required_roles=data["required_roles"],
                 enabled=True,
-            )
-        )
+            ))
 
     db.commit()
 

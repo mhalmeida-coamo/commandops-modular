@@ -34,13 +34,15 @@ class ModuleCreate(BaseModel):
     icon: str = "📦"
     remote_url: str
     api_url: str
+    health_url: str | None = None
     required_roles: list[str] = ["admin"]
 
 
-async def check_module_health(api_url: str) -> str:
+async def check_module_health(mod: Module) -> str:
+    url = (mod.health_url or mod.api_url).rstrip("/") + "/health"
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            res = await client.get(f"{api_url}/health")
+            res = await client.get(url)
             return "healthy" if res.status_code == 200 else "degraded"
     except Exception:
         return "unreachable"
@@ -60,7 +62,7 @@ async def list_modules(
 
     result = []
     for mod in modules:
-        health = await check_module_health(mod.api_url)
+        health = await check_module_health(mod)
         result.append(
             ModuleOut(
                 id=mod.id,
@@ -103,6 +105,7 @@ async def register_module(
         icon=body.icon,
         remote_url=body.remote_url,
         api_url=body.api_url,
+        health_url=body.health_url,
         required_roles=body.required_roles,
         enabled=True,
     )
@@ -110,7 +113,7 @@ async def register_module(
     db.commit()
     db.refresh(mod)
 
-    health = await check_module_health(mod.api_url)
+    health = await check_module_health(mod)
     return ModuleOut(
         id=mod.id, name=mod.name, version=mod.version, status=mod.status,
         nav_label=mod.nav_label, nav_order=mod.nav_order, icon=mod.icon,

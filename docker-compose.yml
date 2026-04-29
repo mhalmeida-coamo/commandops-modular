@@ -26,7 +26,8 @@ services:
       POSTGRES_URL: postgresql://commandops:commandops@postgres:5432/commandops_registry
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
-      VPN_MODULE_URL: http://vpn:8080
+      VPN_PUBLIC_URL: ${VPN_PUBLIC_URL:-http://localhost:5101}
+      VPN_INTERNAL_URL: http://vpn:8080
     ports:
       - "5010:8000"
     depends_on:
