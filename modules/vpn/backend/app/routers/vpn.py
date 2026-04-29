@@ -9,6 +9,8 @@ router = APIRouter(prefix="/api/vpn", tags=["vpn"])
 
 AD_WORKER_TIMEOUT = int(os.environ.get("AD_WORKER_TIMEOUT_SECONDS", "30"))
 
+GroupAction = str  # removed | added | already_absent | already_present | not_found | failed
+
 
 class VpnProcessIn(BaseModel):
     username: str = Field(min_length=3, max_length=240)
@@ -18,9 +20,10 @@ class VpnProcessIn(BaseModel):
 
 class VpnResult(BaseModel):
     login: str
-    vpn_value: str
-    group_action: str
-    group_name: str
+    vpn_value: str                    # "TRUE" | "NOT_SET"
+    bloqueio_ext_action: GroupAction  # ação no grupo CA - Bloqueio Ext
+    internet_mail_action: GroupAction
+    internet_mail_group: str
     warnings: list[str] = []
 
 

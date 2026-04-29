@@ -40,6 +40,35 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── AD Worker ───────────────────────────────────────────────────────────────
+  adworker:
+    build:
+      context: ./services/adworker
+      dockerfile: Dockerfile
+    environment:
+      AD_REALM: ${AD_REALM:-COAMO.COM.BR}
+      AD_DOMAIN: ${AD_DOMAIN:-coamo.com.br}
+      AD_BASE_DN: ${AD_BASE_DN:-DC=coamo,DC=com,DC=br}
+      AD_LDAP_SERVER: ${AD_LDAP_SERVER:-admdc01.coamo.com.br}
+      AD_LDAP_PORT: ${AD_LDAP_PORT:-389}
+      AD_KRB5_CONFIG: /etc/krb5.conf
+      AD_KEYTAB_PATH: /run/secrets/svc_infratools_ad.keytab
+      AD_SERVICE_PRINCIPAL: ${AD_SERVICE_PRINCIPAL:-svc_infratools_ad@COAMO.COM.BR}
+      AD_WORKER_API_TOKEN: ${AD_WORKER_TOKEN}
+      AD_WORKER_AUTO_KINIT: ${AD_WORKER_AUTO_KINIT:-true}
+      AD_WORKER_ALLOW_PASSWORD_OPS: ${AD_WORKER_ALLOW_PASSWORD_OPS:-false}
+      AD_WORKER_DEFAULT_DRY_RUN: ${AD_WORKER_DEFAULT_DRY_RUN:-true}
+    volumes:
+      - ./services/adworker/krb5.conf:/etc/krb5.conf:ro
+      - ${AD_WORKER_KEYTAB_PATH:-/opt/commandops/secrets/svc_infratools_ad.keytab}:/run/secrets/svc_infratools_ad.keytab:ro
+    ports:
+      - "8010:8010"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
   # ── VPN Module ──────────────────────────────────────────────────────────────
   vpn:
     build:

@@ -9,11 +9,14 @@ type ModuleProps = {
   language: "pt-BR" | "en-US";
 };
 
+type GroupAction = "removed" | "added" | "already_absent" | "already_present" | "not_found" | "failed";
+
 type VpnResult = {
   login: string;
   vpn_value: "TRUE" | "NOT_SET";
-  group_action: "removed" | "added" | "already_absent" | "already_present" | "failed";
-  group_name: string;
+  bloqueio_ext_action: GroupAction;
+  internet_mail_action: GroupAction;
+  internet_mail_group: string;
   warnings?: string[];
 };
 
@@ -22,11 +25,12 @@ type VpnResponse = {
   result: VpnResult;
 };
 
-const GROUP_ACTION_LABEL: Record<VpnResult["group_action"], string> = {
+const GROUP_ACTION_LABEL: Record<GroupAction, string> = {
   removed: "Removido",
   added: "Adicionado",
   already_absent: "Já ausente",
   already_present: "Já presente",
+  not_found: "Não encontrado",
   failed: "Falha",
 };
 
@@ -159,12 +163,16 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
               <strong>{result.vpn_value === "TRUE" ? "TRUE" : "NOT SET"}</strong>
             </div>
             <div>
-              <span>{t("Ação de grupo", "Group action")}</span>
-              <strong>{GROUP_ACTION_LABEL[result.group_action] ?? result.group_action}</strong>
+              <span>{t("CA - Bloqueio Ext", "CA - Block Ext")}</span>
+              <strong>{GROUP_ACTION_LABEL[result.bloqueio_ext_action] ?? result.bloqueio_ext_action}</strong>
             </div>
             <div>
-              <span>{t("Grupo", "Group")}</span>
-              <strong>{result.group_name}</strong>
+              <span>{t("InternetMail", "InternetMail")}</span>
+              <strong>
+                {GROUP_ACTION_LABEL[result.internet_mail_action] ?? result.internet_mail_action}
+                {" "}
+                <span style={{ fontWeight: 400, opacity: 0.7 }}>({result.internet_mail_group})</span>
+              </strong>
             </div>
           </div>
           {result.warnings?.length ? (
