@@ -1,4 +1,11 @@
-import { Component, lazy, Suspense, type ComponentType, type ErrorInfo, type ReactNode } from "react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  type ComponentType,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import type { ModuleManifest, ModuleProps } from "../types";
 
 type Props = {
@@ -41,6 +48,11 @@ class ModuleErrorBoundary extends Component<
   }
 }
 
+type RemoteContainer = {
+  init: (scope: Record<string, unknown>) => Promise<void>;
+  get: (module: string) => Promise<() => { default: ComponentType<ModuleProps> }>;
+};
+
 const moduleCache = new Map<string, ComponentType<ModuleProps>>();
 
 function loadRemoteComponent(mod: ModuleManifest): ComponentType<ModuleProps> {
@@ -49,26 +61,18 @@ function loadRemoteComponent(mod: ModuleManifest): ComponentType<ModuleProps> {
   }
 
   const LazyComponent = lazy(async () => {
-    const script = document.createElement("script");
-    script.src = mod.remote_url;
-    script.type = "module";
+    // @originjs/vite-plugin-federation gera ES modules — import dinâmico direto
+    const container = (await import(/* @vite-ignore */ mod.remote_url)) as RemoteContainer;
 
-    await new Promise<void>((resolve, reject) => {
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load remote: ${mod.remote_url}`));
-      document.head.appendChild(script);
-    });
-
-    const container = (window as unknown as Record<string, unknown>)[`${mod.id}_module`] as {
-      get: (module: string) => Promise<() => { default: ComponentType<ModuleProps> }>;
-      init: (shareScope: unknown) => Promise<void>;
-    };
-
-    if (!container) {
-      throw new Error(`Remote container "${mod.id}_module" not found after loading script`);
+    if (!container?.get || !container?.init) {
+      throw new Error(
+        `remoteEntry inválido em "${mod.remote_url}" — não exporta get/init`
+      );
     }
 
-    await container.init(__webpack_share_scopes__?.default ?? {});
+    // Escopo vazio: o remote usa seu próprio React bundled (singleton declarado no vite.config)
+    await container.init({});
+
     const factory = await container.get("./ModuleView");
     const Module = factory();
     return { default: Module.default };
@@ -77,8 +81,6 @@ function loadRemoteComponent(mod: ModuleManifest): ComponentType<ModuleProps> {
   moduleCache.set(mod.id, LazyComponent);
   return LazyComponent;
 }
-
-declare const __webpack_share_scopes__: { default: unknown } | undefined;
 
 export function ModuleLoader({ module: mod, moduleProps }: Props) {
   const RemoteComponent = loadRemoteComponent(mod);
