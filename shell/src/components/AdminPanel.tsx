@@ -1,43 +1,51 @@
-import { useEffect, useState } from "react";
-import type { ModuleManifest, ModuleSetting } from "../types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ModuleSetting } from "../types";
 import logoExpanded from "../assets/logo-commandops.png";
 
 type Props = {
-  modules: ModuleManifest[];
   token: string;
   onClose: () => void;
+  onModulesChanged?: () => void;
 };
 
 type SettingRow = ModuleSetting & { dirty?: boolean };
 
-// ── Icons ────────────────────────────────────────────────────────
-
+type GovernanceModule = {
+  id: string;
+  name: string;
+  version: string;
+  status: "enabled" | "disabled";
+  enabled: boolean;
+  nav_label: string;
+  nav_order: number;
+  icon: string;
+  dependencies: string[];
+  configured: boolean;
+  health: "healthy" | "degraded" | "unreachable";
+  latency_ms: number | null;
+};
 
 function CloseIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
       <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
 }
 
-function ModulesIcon() {
+function SaveIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="8" height="8" rx="2" />
-      <rect x="13" y="3" width="8" height="8" rx="2" />
-      <rect x="3" y="13" width="8" height="8" rx="2" />
-      <rect x="13" y="13" width="8" height="8" rx="2" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
     </svg>
   );
 }
 
 function KeyIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
       <circle cx="7.5" cy="15.5" r="3.5" />
       <path d="M11 12l9-9M17 6l2 2" />
     </svg>
@@ -46,8 +54,7 @@ function KeyIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
       <path d="M1 1l22 22" />
@@ -57,8 +64,7 @@ function EyeOffIcon() {
 
 function TrashIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -68,27 +74,19 @@ function TrashIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
       <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }
 
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" />
-      <polyline points="7 3 7 8 15 8" />
-    </svg>
-  );
+function healthLabel(health: GovernanceModule["health"]): string {
+  if (health === "healthy") return "healthy";
+  if (health === "degraded") return "degraded";
+  return "unreachable";
 }
 
-// ── Settings editor ──────────────────────────────────────────────
-
-function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; moduleName: string; token: string }) {
+function SettingsEditor({ moduleId, moduleName, token, onSaved }: { moduleId: string; moduleName: string; token: string; onSaved: () => void }) {
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -140,6 +138,7 @@ function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; mod
       const updated = (await res.json()) as ModuleSetting[];
       setRows(updated.map((s) => ({ ...s })));
       setSuccess(true);
+      onSaved();
       setTimeout(() => setSuccess(false), 3000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar");
@@ -171,11 +170,7 @@ function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; mod
       </div>
 
       {error && <div className="alert">{error}</div>}
-      {success && (
-        <div className="alert admin-alert-success">
-          Configurações salvas com sucesso.
-        </div>
-      )}
+      {success && <div className="alert admin-alert-success">Configurações salvas com sucesso.</div>}
 
       <div className="admin-settings-table">
         <div className="admin-settings-table-head">
@@ -185,14 +180,10 @@ function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; mod
           <span />
         </div>
 
-        {rows.length === 0 && (
-          <div className="admin-settings-empty">
-            Nenhuma configuração definida para este módulo.
-          </div>
-        )}
+        {rows.length === 0 && <div className="admin-settings-empty">Nenhuma configuração definida para este módulo.</div>}
 
         {rows.map((row, idx) => (
-          <div className="admin-settings-row" key={idx}>
+          <div className="admin-settings-row" key={`${moduleId}-${idx}`}>
             <div className="admin-settings-cell">
               <span className="admin-settings-key-icon"><KeyIcon /></span>
               <input
@@ -219,17 +210,11 @@ function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; mod
                   checked={row.is_secret}
                   onChange={(e) => updateRow(idx, { is_secret: e.target.checked })}
                 />
-                <span className="admin-secret-toggle-label">
-                  {row.is_secret ? "Sim" : "Não"}
-                </span>
+                <span className="admin-secret-toggle-label">{row.is_secret ? "Sim" : "Não"}</span>
               </label>
             </div>
             <div className="admin-settings-cell admin-settings-action-col">
-              <button
-                className="admin-remove-btn"
-                onClick={() => removeRow(idx)}
-                title="Remover variável"
-              >
+              <button className="admin-remove-btn" onClick={() => removeRow(idx)} title="Remover variável">
                 <TrashIcon />
               </button>
             </div>
@@ -245,81 +230,102 @@ function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; mod
   );
 }
 
-// ── Modules section ──────────────────────────────────────────────
+export function AdminPanel({ token, onClose, onModulesChanged }: Props) {
+  const [modules, setModules] = useState<GovernanceModule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [busyModule, setBusyModule] = useState<string | null>(null);
+  const [configTarget, setConfigTarget] = useState<GovernanceModule | null>(null);
 
-function ModulesSection({
-  modules,
-  token,
-  selectedId,
-  onSelect,
-}: {
-  modules: ModuleManifest[];
-  token: string;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const selected = modules.find((m) => m.id === selectedId) ?? null;
-
-  return (
-    <div className="admin-modules-layout">
-      <div className="admin-modules-list">
-        <div className="admin-modules-list-title">Módulos registrados</div>
-        {modules.map((mod) => (
-          <button
-            key={mod.id}
-            className={`admin-module-item${selectedId === mod.id ? " active" : ""}`}
-            onClick={() => onSelect(mod.id)}
-          >
-            <span className="admin-module-item-icon">{mod.icon ?? "⚙"}</span>
-            <div className="admin-module-item-info">
-              <strong>{mod.name}</strong>
-              <span>{mod.id} · v{mod.version}</span>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div className="admin-modules-content">
-        {selected ? (
-          <SettingsEditor moduleId={selected.id} moduleName={selected.name} token={token} />
-        ) : (
-          <div className="admin-content-loading">
-            <span style={{ color: "var(--muted)", fontSize: "var(--text-sm)" }}>
-              Selecione um módulo para configurar.
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── AdminPanel ───────────────────────────────────────────────────
-
-type AdminSection = "modules";
-
-export function AdminPanel({ modules, token, onClose }: Props) {
-  const [section, setSection] = useState<AdminSection>("modules");
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
-    modules[0]?.id ?? null
-  );
+  const loadGovernance = useCallback(async () => {
+    if (modules.length === 0) setLoading(true);
+    else setRefreshing(true);
+    setError("");
+    try {
+      const res = await fetch("/registry/modules/governance", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { detail?: string };
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      const data = (await res.json()) as GovernanceModule[];
+      setModules(data.sort((a, b) => a.nav_order - b.nav_order));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar módulos");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [modules.length, token]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+    void loadGovernance();
+  }, [loadGovernance]);
+
+  useEffect(() => {
+    const escClose = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (configTarget) {
+          setConfigTarget(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    document.addEventListener("keydown", escClose);
+    return () => document.removeEventListener("keydown", escClose);
+  }, [configTarget, onClose]);
+
+  const metrics = useMemo(() => {
+    const healthy = modules.filter((m) => m.health === "healthy").length;
+    const degraded = modules.filter((m) => m.health === "degraded").length;
+    const unreachable = modules.filter((m) => m.health === "unreachable").length;
+    const avgLatency =
+      modules.length > 0
+        ? Math.round(
+            modules
+              .map((m) => m.latency_ms ?? 0)
+              .reduce((acc, cur) => acc + cur, 0) / modules.length
+          )
+        : 0;
+    return { healthy, degraded, unreachable, avgLatency };
+  }, [modules]);
+
+  async function toggleModule(mod: GovernanceModule) {
+    setBusyModule(mod.id);
+    try {
+      const res = await fetch(`/registry/modules/${mod.id}/enabled`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enabled: !mod.enabled }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { detail?: string };
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      const updated = (await res.json()) as GovernanceModule;
+      setModules((prev) => prev.map((m) => (m.id === mod.id ? updated : m)));
+      onModulesChanged?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao atualizar módulo");
+    } finally {
+      setBusyModule(null);
+    }
+  }
 
   return (
     <div className="admin-overlay">
-
-      {/* ── Admin header ── */}
       <header className="admin-header">
         <div className="admin-header-left">
           <img src={logoExpanded} alt="CommandOps" className="admin-header-logo" />
           <div className="admin-header-title">
             <strong>Administração da Plataforma</strong>
-            <span>Configurações globais</span>
+            <span>Governança e configuração operacional</span>
           </div>
         </div>
         <button className="admin-close-btn" onClick={onClose}>
@@ -328,36 +334,113 @@ export function AdminPanel({ modules, token, onClose }: Props) {
         </button>
       </header>
 
-      {/* ── Admin body ── */}
-      <div className="admin-body">
+      <main className="admin-main admin-governance-main">
+        <section className="admin-governance-hero">
+          <span className="admin-governance-kicker">Platform</span>
+          <h2>Module governance</h2>
+          <p>Enable, disable, and review the configuration state of each operational surface.</p>
 
-        {/* Left nav */}
-        <nav className="admin-nav">
-          <div className="admin-nav-group">
-            <div className="admin-nav-group-title">Configuração</div>
-            <button
-              className={`admin-nav-item${section === "modules" ? " active" : ""}`}
-              onClick={() => setSection("modules")}
-            >
-              <span className="admin-nav-item-icon"><ModulesIcon /></span>
-              Módulos
-            </button>
+          <div className="admin-governance-metrics">
+            <span>{metrics.healthy} healthy</span>
+            <span>{metrics.degraded} degraded</span>
+            <span>{metrics.unreachable} unreachable</span>
+            <span>avg {metrics.avgLatency} ms</span>
+            {refreshing && <span>updating…</span>}
           </div>
-        </nav>
+        </section>
 
-        {/* Main content */}
-        <main className="admin-main">
-          {section === "modules" && (
-            <ModulesSection
-              modules={modules}
+        {error && <div className="alert">{error}</div>}
+
+        {loading ? (
+          <div className="admin-content-loading">
+            <span className="spinner" />
+            <span>Carregando governança dos módulos…</span>
+          </div>
+        ) : (
+          <section className="admin-governance-grid">
+            {modules.map((mod) => (
+              <article key={mod.id} className="admin-governance-card">
+                <header className="admin-governance-card-head">
+                  <div>
+                    <h3>{mod.name}</h3>
+                    <p>Version {mod.version}</p>
+                  </div>
+                  <div className="admin-governance-badges">
+                    <span className={`admin-tag ${mod.enabled ? "is-good" : "is-off"}`}>
+                      {mod.enabled ? "enabled" : "disabled"}
+                    </span>
+                    <span className={`admin-tag ${mod.configured ? "is-good" : "is-warn"}`}>
+                      {mod.configured ? "configured" : "pending config"}
+                    </span>
+                  </div>
+                </header>
+
+                <div className="admin-governance-meta">
+                  <div>
+                    <span>Dependencies</span>
+                    <strong>{mod.dependencies.length ? mod.dependencies.join(", ") : "--"}</strong>
+                  </div>
+                  <div>
+                    <span>Reported health</span>
+                    <strong className="admin-health-inline">
+                      <span className={`health-dot ${mod.health}`} />
+                      {healthLabel(mod.health)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Latency</span>
+                    <strong>{mod.latency_ms !== null ? `${mod.latency_ms} ms` : "--"}</strong>
+                  </div>
+                </div>
+
+                <div className="admin-governance-actions">
+                  <button
+                    className={`button ${mod.enabled ? "secondary" : ""}`}
+                    onClick={() => void toggleModule(mod)}
+                    disabled={busyModule === mod.id}
+                  >
+                    {busyModule === mod.id
+                      ? "Aplicando..."
+                      : mod.enabled
+                        ? "Disable"
+                        : "Enable"}
+                  </button>
+                  <button className="button admin-config-btn" onClick={() => setConfigTarget(mod)}>
+                    Configure
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+      </main>
+
+      {configTarget && (
+        <div className="admin-modal-backdrop" role="presentation" onClick={() => setConfigTarget(null)}>
+          <section className="admin-modal" role="dialog" aria-modal="true" aria-label={`Configuração do módulo ${configTarget.name}`} onClick={(e) => e.stopPropagation()}>
+            <header className="admin-modal-header">
+              <div>
+                <span>Configuração do módulo</span>
+                <strong>{configTarget.name}</strong>
+              </div>
+              <button className="admin-close-btn" onClick={() => setConfigTarget(null)}>
+                <CloseIcon />
+                Fechar
+              </button>
+            </header>
+
+            <SettingsEditor
+              moduleId={configTarget.id}
+              moduleName={configTarget.name}
               token={token}
-              selectedId={selectedModuleId}
-              onSelect={setSelectedModuleId}
+              onSaved={() => {
+                onModulesChanged?.();
+                void loadGovernance();
+              }}
             />
-          )}
-        </main>
-
-      </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

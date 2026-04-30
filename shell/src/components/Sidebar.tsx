@@ -6,7 +6,6 @@ type Props = {
   modules: ModuleManifest[];
   activeModuleId: string | null;
   collapsed: boolean;
-  user?: { username: string; role?: string; is_platform_admin?: boolean } | null;
   onNavigate: (moduleId: string) => void;
   onToggleCollapse: () => void;
 };
@@ -101,13 +100,9 @@ export function Sidebar({
   modules,
   activeModuleId,
   collapsed,
-  user,
   onNavigate,
   onToggleCollapse,
 }: Props) {
-  const initials = user?.username?.slice(0, 2).toUpperCase() ?? "??";
-  const roleLabel = user?.is_platform_admin ? "Admin" : (user?.role ?? "Usuário");
-
   return (
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`} style={{ position: "relative" }}>
 
@@ -162,17 +157,6 @@ export function Sidebar({
         </div>
 
 
-      </div>
-
-      {/* Bottom user card */}
-      <div className="sidebar-user">
-        <span className="sidebar-user-avatar">{initials}</span>
-        {!collapsed && (
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.username ?? "—"}</span>
-            <span className="sidebar-user-role">{roleLabel}</span>
-          </div>
-        )}
       </div>
 
     </aside>

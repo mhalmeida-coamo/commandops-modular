@@ -40,7 +40,7 @@ export function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const { modules, loading: modulesLoading } = useModules(auth?.token ?? null);
+  const { modules, loading: modulesLoading, refresh: refreshModules } = useModules(auth?.token ?? null);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
@@ -96,6 +96,7 @@ export function App() {
 
   function handleAdminClose() {
     setShowAdmin(false);
+    refreshModules();
   }
 
   if (!auth) {
@@ -148,7 +149,6 @@ export function App() {
           modules={modules}
           activeModuleId={activeModule?.id ?? null}
           collapsed={sidebarCollapsed}
-          user={auth.user}
           onNavigate={handleNavigate}
           onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         />
@@ -190,7 +190,7 @@ export function App() {
       </div>
 
       {showAdmin && (
-        <AdminPanel modules={modules} token={auth.token} onClose={handleAdminClose} />
+        <AdminPanel token={auth.token} onClose={handleAdminClose} onModulesChanged={refreshModules} />
       )}
     </>
   );

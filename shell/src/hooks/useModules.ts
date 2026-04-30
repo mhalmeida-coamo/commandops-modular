@@ -1,26 +1,34 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ModuleManifest } from "../types";
 
 type ModulesState = {
   modules: ModuleManifest[];
   loading: boolean;
   error: string | null;
+  refresh: () => void;
 };
 
 export function useModules(token: string | null): ModulesState {
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [state, setState] = useState<ModulesState>({
     modules: [],
     loading: true,
     error: null,
+    refresh: () => undefined,
   });
+
+  const refresh = useCallback(() => {
+    setRefreshNonce((v) => v + 1);
+  }, []);
 
   useEffect(() => {
     if (!token) {
-      setState({ modules: [], loading: false, error: null });
+      setState((prev) => ({ ...prev, modules: [], loading: false, error: null, refresh }));
       return;
     }
 
     let cancelled = false;
+    setState((prev) => ({ ...prev, loading: true, error: null, refresh }));
 
     fetch("/registry/modules", {
       headers: { Authorization: `Bearer ${token}` },
@@ -34,19 +42,19 @@ export function useModules(token: string | null): ModulesState {
           const sorted = [...modules]
             .filter((m) => m.status === "enabled")
             .sort((a, b) => a.nav_order - b.nav_order);
-          setState({ modules: sorted, loading: false, error: null });
+          setState({ modules: sorted, loading: false, error: null, refresh });
         }
       })
       .catch((err: Error) => {
         if (!cancelled) {
-          setState({ modules: [], loading: false, error: err.message });
+          setState({ modules: [], loading: false, error: err.message, refresh });
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, refresh, refreshNonce]);
 
   return state;
 }
