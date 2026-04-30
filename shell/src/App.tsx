@@ -105,7 +105,7 @@ export function App() {
           <div className="login-brand">
             <img src={logoExpanded} alt="CommandOps" className="login-brand-logo" />
           </div>
-          <p>Faça login para acessar o painel de operações.</p>
+          <p style={{ textAlign: "center" }}>Faça login para acessar o painel de operações.</p>
 
           {loginError && <div className="alert">{loginError}</div>}
 
