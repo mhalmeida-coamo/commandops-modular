@@ -1,9 +1,16 @@
+/* ── Card wrapper ────────────────────────────────── */
 .card {
   display: grid;
-  gap: 16px;
-  min-width: 0;
+  gap: 22px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 20px;
+  padding: 28px 32px;
+  box-shadow: var(--surface-shadow);
+  max-width: 1100px;
 }
 
+/* ── Headline ────────────────────────────────────── */
 .headline {
   display: flex;
   align-items: flex-start;
@@ -13,89 +20,106 @@
 }
 
 .title {
-  margin: 0;
-  font-size: var(--text-xl);
+  margin: 0 0 6px;
+  font-size: 28px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
+  line-height: 1.1;
 }
 
 .subtitle {
   display: block;
-  margin-top: 6px;
   color: var(--muted);
-  font-size: 15px;
-  max-width: 820px;
+  font-size: var(--text-sm);
+  max-width: 680px;
+  line-height: 1.55;
 }
 
-/* ── Pill de status ──────────────────────────────── */
+/* ── Status pill ─────────────────────────────────── */
 .modePill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  min-height: 34px;
-  padding: 0 14px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  border: 1.5px solid;
+  min-height: 32px;
+  padding: 0 16px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .on {
-  border-color: color-mix(in srgb, var(--success) 58%, var(--border));
-  color: color-mix(in srgb, var(--success) 88%, #ffffff 12%);
-  background: color-mix(in srgb, var(--success) 16%, transparent);
+  border-color: color-mix(in srgb, var(--success) 60%, transparent);
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
 }
 
 .off {
-  border-color: color-mix(in srgb, var(--muted) 48%, var(--border));
+  border-color: color-mix(in srgb, var(--muted) 50%, transparent);
   color: var(--muted);
-  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  background: color-mix(in srgb, var(--muted) 8%, transparent);
 }
 
-/* ── Shell (grid de controles) ───────────────────── */
+/* ── Shell (controls grid) ───────────────────────── */
 .shell {
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
   align-items: stretch;
 }
 
 .userField {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text);
   margin: 0;
 }
 
-/* ── Card de modo (toggle) ───────────────────────── */
+.userField .input {
+  padding: 14px 18px;
+  font-size: var(--text-base);
+  border-radius: 14px;
+  margin-top: 0;
+}
+
+/* ── Mode card (toggle) ──────────────────────────── */
 .modeCard {
   border: 1px solid var(--panel-border-strong);
-  border-radius: 18px;
-  padding: 14px;
-  background: linear-gradient(155deg, rgba(37, 93, 255, 0.12), rgba(16, 185, 129, 0.08));
-  display: grid;
-  gap: 12px;
-  align-content: start;
+  border-radius: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--accent) 9%, var(--panel)),
+    color-mix(in srgb, var(--success) 6%, var(--panel))
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
 }
 
 .modeCopy {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .modeCopy strong {
-  font-size: 14px;
+  font-size: var(--text-base);
+  font-weight: 600;
   color: var(--text);
 }
 
 .modeCopy span {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--muted);
+  line-height: 1.4;
 }
 
 /* ── Toggle switch ───────────────────────────────── */
@@ -105,24 +129,24 @@
   padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   width: fit-content;
 }
 
 .toggle:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .track {
   position: relative;
   width: 58px;
-  height: 34px;
+  height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(134, 152, 183, 0.45);
-  background: rgba(100, 116, 139, 0.34);
-  transition: background-color 0.24s ease, border-color 0.24s ease;
+  border: 1px solid rgba(134, 152, 183, 0.4);
+  background: rgba(100, 116, 139, 0.32);
+  transition: background 0.22s ease, border-color 0.22s ease;
   flex-shrink: 0;
 }
 
@@ -130,41 +154,41 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 4px 12px rgba(2, 8, 23, 0.28);
-  transition: transform 0.24s ease;
+  box-shadow: 0 3px 10px rgba(2, 8, 23, 0.3);
+  transition: transform 0.22s ease;
 }
 
 .toggleOn .track {
-  border-color: color-mix(in srgb, var(--success) 58%, #88ffd9 42%);
-  background: color-mix(in srgb, var(--success) 72%, #064e3b 28%);
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  background: color-mix(in srgb, var(--success) 75%, #064e3b 25%);
 }
 
 .toggleOn .thumb {
-  transform: translateX(24px);
+  transform: translateX(26px);
 }
 
 .toggleLabel {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   font-weight: 700;
   color: var(--muted);
 }
 
 .toggleOn .toggleLabel {
-  color: color-mix(in srgb, var(--success) 82%, #ffffff 18%);
+  color: var(--success);
 }
 
-/* ── Ações ───────────────────────────────────────── */
+/* ── Actions ─────────────────────────────────────── */
 .actions {
   display: flex;
   gap: 10px;
 }
 
-/* ── Resultados ──────────────────────────────────── */
+/* ── Results ─────────────────────────────────────── */
 .results {
   display: grid;
   gap: 12px;
@@ -174,23 +198,24 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  padding: 16px;
-  background: var(--panel);
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: var(--bg-secondary);
 }
 
 .resultGrid > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .resultGrid span {
   font-size: var(--text-xs);
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .resultGrid strong {
@@ -200,25 +225,31 @@
 }
 
 .logOk {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
   background: color-mix(in srgb, var(--success) 8%, transparent);
   color: var(--success);
   font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .logWarn {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
   background: color-mix(in srgb, var(--warning) 8%, transparent);
   color: var(--warning);
   font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 700px) {
+  .card {
+    padding: 20px 18px;
+  }
+
   .shell {
     grid-template-columns: 1fr;
   }
