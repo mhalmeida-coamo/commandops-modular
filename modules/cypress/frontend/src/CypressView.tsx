@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import styles from "./CypressView.module.css";
 
 type ModuleProps = {
@@ -9,379 +9,359 @@ type ModuleProps = {
   language: "pt-BR" | "en-US";
 };
 
-type Printer = {
-  id: string;
+type DirectUser = { domain: string; account: string; permission: string };
+type RoleMember = { domain: string; account: string; permission: string };
+type Role = {
   name: string;
-  queue: string;
-  location: string;
+  docuvault: string;
+  permission: string;
   description: string;
+  role_type: string;
+  members: RoleMember[];
+  admins: RoleMember[];
 };
-
-type Group = {
-  id: string;
+type Printer = {
   name: string;
-  group_dn: string;
+  style: string;
+  description: string;
+  host: string;
+  port: string;
+  direct_users: DirectUser[];
+  roles: Role[];
 };
+type PrinterResult = { query: string; found: boolean; count: number; printers: Printer[] };
 
-type Member = {
-  dn: string;
-  sAMAccountName: string;
+type LdapMember = {
   displayName: string;
+  cn: string;
+  sAMAccountName: string;
   mail: string;
+  department: string;
+  title: string;
+  employeeID: string;
+  type: "user" | "group";
+  dn: string;
 };
-
-type AddUserResult = {
-  status: "added" | "already_member" | "not_found" | "failed";
-  user_dn: string | null;
-  message: string;
-};
-
-type MembersState = {
-  loading: boolean;
-  error: string;
-  data: Member[] | null;
-};
-
-type AddModal = {
-  groupDn: string;
-  groupName: string;
-};
+type GroupDetail = { loading: boolean; error: string; found?: boolean; groupCn?: string; data?: LdapMember[] };
 
 export default function CypressView({ token, apiBase, language, theme }: ModuleProps) {
   const t = (pt: string, en: string) => (language === "pt-BR" ? pt : en);
+  const themeClass = theme === "dark" ? styles.themeDark : styles.themeLight;
+  const auth = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  const [search, setSearch] = useState("");
-  const [printers, setPrinters] = useState<Printer[] | null>(null);
-  const [printersLoading, setPrintersLoading] = useState(false);
-  const [printersError, setPrintersError] = useState("");
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PrinterResult | null>(null);
+  const [resultMsg, setResultMsg] = useState("");
 
-  const [expandedPrinterId, setExpandedPrinterId] = useState<string | null>(null);
-  const [groups, setGroups] = useState<Group[] | null>(null);
-  const [groupsLoading, setGroupsLoading] = useState(false);
-  const [groupsError, setGroupsError] = useState("");
+  const [expandedPrinters, setExpandedPrinters] = useState<Set<string>>(new Set());
+  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
+  const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
+  const [groupDetails, setGroupDetails] = useState<Record<string, GroupDetail>>({});
 
-  const [expandedGroupDn, setExpandedGroupDn] = useState<string | null>(null);
-  const [membersMap, setMembersMap] = useState<Record<string, MembersState>>({});
-
-  const [addModal, setAddModal] = useState<AddModal | null>(null);
-  const [addUsername, setAddUsername] = useState("");
+  const [addModal, setAddModal] = useState<{ group: string; key: string } | null>(null);
+  const [addUser, setAddUser] = useState("");
   const [addLoading, setAddLoading] = useState(false);
-  const [addResult, setAddResult] = useState<AddUserResult | null>(null);
+  const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const authHeaders = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-
-  async function fetchPrinters() {
-    setPrintersLoading(true);
-    setPrintersError("");
-    setPrinters(null);
-    setExpandedPrinterId(null);
-    setGroups(null);
-    setExpandedGroupDn(null);
-    setMembersMap({});
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) { setResultMsg(t("Digite o nome da impressora.", "Enter a printer name.")); return; }
+    setLoading(true);
+    setResultMsg("");
+    setResult(null);
+    setExpandedPrinters(new Set());
+    setExpandedRoles(new Set());
+    setExpandedMembers(new Set());
+    setGroupDetails({});
     try {
-      const res = await fetch(
-        `${apiBase}/api/cypress/printers?search=${encodeURIComponent(search.trim())}`,
-        { headers: authHeaders }
-      );
-      if (!res.ok) {
-        const err = (await res.json()) as { detail?: string };
-        throw new Error(err.detail ?? `HTTP ${res.status}`);
+      const res = await fetch(`${apiBase}/api/cypress/printer/search?q=${encodeURIComponent(query.trim())}`, { headers: auth });
+      if (!res.ok) { const e = (await res.json()) as { detail?: string }; throw new Error(e.detail ?? `HTTP ${res.status}`); }
+      const data = (await res.json()) as PrinterResult;
+      setResult(data);
+      if (!data.found) setResultMsg(t("Nenhuma impressora encontrada.", "No printers found."));
+      else {
+        setResultMsg(t(`${data.count} impressora(s) encontrada(s).`, `${data.count} printer(s) found.`));
+        if (data.printers.length === 1) setExpandedPrinters(new Set([data.printers[0].name]));
       }
-      const data = (await res.json()) as Printer[];
-      setPrinters(data);
     } catch (err) {
-      setPrintersError(err instanceof Error ? err.message : t("Erro ao buscar impressoras", "Error fetching printers"));
+      setResultMsg(err instanceof Error ? err.message : t("Erro na busca.", "Search error."));
     } finally {
-      setPrintersLoading(false);
+      setLoading(false);
     }
   }
 
-  const fetchGroups = useCallback(async () => {
-    setGroupsLoading(true);
-    setGroupsError("");
-    setGroups(null);
-    setExpandedGroupDn(null);
-    try {
-      const res = await fetch(`${apiBase}/api/cypress/groups`, { headers: authHeaders });
-      if (!res.ok) {
-        const err = (await res.json()) as { detail?: string };
-        throw new Error(err.detail ?? `HTTP ${res.status}`);
-      }
-      const data = (await res.json()) as Group[];
-      setGroups(data);
-    } catch (err) {
-      setGroupsError(err instanceof Error ? err.message : t("Erro ao buscar grupos", "Error fetching groups"));
-    } finally {
-      setGroupsLoading(false);
-    }
-  }, [apiBase, token]);
+  function togglePrinter(name: string) {
+    setExpandedPrinters(prev => { const s = new Set(prev); s.has(name) ? s.delete(name) : s.add(name); return s; });
+  }
 
-  async function handlePrinterClick(printer: Printer) {
-    if (expandedPrinterId === printer.id) {
-      setExpandedPrinterId(null);
-      setGroups(null);
-      setExpandedGroupDn(null);
+  function toggleRole(key: string) {
+    setExpandedRoles(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
+  }
+
+  async function toggleMember(key: string, groupName: string) {
+    if (expandedMembers.has(key)) {
+      setExpandedMembers(prev => { const s = new Set(prev); s.delete(key); return s; });
       return;
     }
-    setExpandedPrinterId(printer.id);
-    setExpandedGroupDn(null);
-    await fetchGroups();
-  }
-
-  async function handleGroupClick(group: Group) {
-    const dn = group.group_dn;
-    if (expandedGroupDn === dn) {
-      setExpandedGroupDn(null);
-      return;
-    }
-    setExpandedGroupDn(dn);
-
-    if (membersMap[dn]?.data || membersMap[dn]?.loading) return;
-
-    setMembersMap((prev) => ({ ...prev, [dn]: { loading: true, error: "", data: null } }));
+    setExpandedMembers(prev => new Set([...prev, key]));
+    if (groupDetails[key]?.data || groupDetails[key]?.loading) return;
+    setGroupDetails(prev => ({ ...prev, [key]: { loading: true, error: "" } }));
     try {
-      const res = await fetch(
-        `${apiBase}/api/cypress/groups/${encodeURIComponent(dn)}/members`,
-        { headers: authHeaders }
-      );
-      if (!res.ok) {
-        const err = (await res.json()) as { detail?: string };
-        throw new Error(err.detail ?? `HTTP ${res.status}`);
-      }
-      const data = (await res.json()) as { members: Member[] };
-      setMembersMap((prev) => ({ ...prev, [dn]: { loading: false, error: "", data: data.members } }));
+      const res = await fetch(`${apiBase}/api/cypress/group/members?group=${encodeURIComponent(groupName)}`, { headers: auth });
+      if (!res.ok) { const e = (await res.json()) as { detail?: string }; throw new Error(e.detail ?? `HTTP ${res.status}`); }
+      const data = (await res.json()) as { found: boolean; group_cn?: string; members: LdapMember[] };
+      setGroupDetails(prev => ({ ...prev, [key]: { loading: false, error: "", found: data.found, groupCn: data.group_cn, data: data.members } }));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro";
-      setMembersMap((prev) => ({ ...prev, [dn]: { loading: false, error: msg, data: null } }));
+      setGroupDetails(prev => ({ ...prev, [key]: { loading: false, error: err instanceof Error ? err.message : "Erro" } }));
     }
   }
 
-  function openAddModal(group: Group) {
-    setAddModal({ groupDn: group.group_dn, groupName: group.name });
-    setAddUsername("");
-    setAddResult(null);
+  function openAddModal(group: string, key: string) {
+    setAddModal({ group, key });
+    setAddUser("");
+    setAddMsg(null);
   }
 
-  function closeAddModal() {
-    setAddModal(null);
-    setAddUsername("");
-    setAddResult(null);
-  }
+  function closeAddModal() { setAddModal(null); setAddUser(""); setAddMsg(null); }
 
   async function handleAddUser() {
-    if (!addModal || !addUsername.trim() || addLoading) return;
+    if (!addModal || !addUser.trim() || addLoading) return;
     setAddLoading(true);
-    setAddResult(null);
+    setAddMsg(null);
     try {
-      const res = await fetch(`${apiBase}/api/cypress/groups/add-user`, {
+      const res = await fetch(`${apiBase}/api/cypress/group/add-user`, {
         method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({ group_dn: addModal.groupDn, username: addUsername.trim() }),
+        headers: auth,
+        body: JSON.stringify({ group: addModal.group, user: addUser.trim() }),
       });
-      const data = (await res.json()) as AddUserResult;
-      setAddResult(data);
-      if (data.status === "added") {
-        setMembersMap((prev) => ({ ...prev, [addModal.groupDn]: { loading: false, error: "", data: null } }));
+      const data = (await res.json()) as { success?: boolean; message?: string; detail?: string };
+      if (!res.ok) { setAddMsg({ ok: false, text: data.detail ?? "Erro ao adicionar" }); return; }
+      setAddMsg({ ok: true, text: data.message ?? "Operação concluída" });
+      if (data.success) {
+        setGroupDetails(prev => ({ ...prev, [addModal.key]: { loading: false, error: "", data: undefined } }));
       }
     } catch (err) {
-      setAddResult({
-        status: "failed",
-        user_dn: null,
-        message: err instanceof Error ? err.message : "Erro desconhecido",
-      });
+      setAddMsg({ ok: false, text: err instanceof Error ? err.message : "Erro desconhecido" });
     } finally {
       setAddLoading(false);
     }
   }
 
-  const themeClass = theme === "dark" ? styles.themeDark : styles.themeLight;
+  function MemberGroupAccordion({ groupName, memberKey }: { groupName: string; memberKey: string }) {
+    const isOpen = expandedMembers.has(memberKey);
+    const details = groupDetails[memberKey];
+    return (
+      <div className={styles.accordionItem}>
+        <button type="button" className={styles.accordionToggle} onClick={() => void toggleMember(memberKey, groupName)}>
+          <span className={`${styles.caret}${isOpen ? ` ${styles.caretOpen}` : ""}`}>▶</span>
+          <span className={styles.accordionIcon}>👥</span>
+          <span className={styles.accordionCopy}>
+            <span className={styles.accordionTitle}>{groupName}</span>
+          </span>
+        </button>
+        {isOpen && (
+          <div className={styles.accordionContent}>
+            {details?.loading && <div className={styles.loadingRow}><span className={styles.spinner} />{t("Carregando membros…", "Loading members…")}</div>}
+            {details?.error && <div className={styles.logError}>{details.error}</div>}
+            {details && !details.loading && !details.error && (
+              <>
+                <div className={styles.memberToolbar}>
+                  {details.groupCn && <span className={styles.muted}>{t("Grupo:", "Group:")} {details.groupCn}</span>}
+                  <button className={`button secondary ${styles.addUserBtn}`} type="button" onClick={() => openAddModal(groupName, memberKey)}>
+                    + {t("Adicionar usuário", "Add user")}
+                  </button>
+                </div>
+                {(!details.data || details.data.length === 0) && (
+                  <span className={styles.muted}>{t("Nenhum membro encontrado.", "No members found.")}</span>
+                )}
+                {details.data && details.data.length > 0 && (
+                  <div className={styles.tableShell}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>{t("Nome", "Name")}</th>
+                          <th>Login</th>
+                          <th>{t("Matrícula", "Employee ID")}</th>
+                          <th>{t("Depto", "Dept")}</th>
+                          <th>{t("Cargo", "Title")}</th>
+                          <th>Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.data.map((m, i) => (
+                          <tr key={i}>
+                            <td>{m.displayName || m.cn}</td>
+                            <td>{m.sAMAccountName}</td>
+                            <td>{m.employeeID}</td>
+                            <td>{m.department}</td>
+                            <td>{m.title}</td>
+                            <td>{m.mail}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.card} ${themeClass}`}>
       <div className={styles.headline}>
         <div>
+          <div className={styles.eyebrow}>Printer Server</div>
           <h2 className={styles.title}>Cypress</h2>
           <span className={styles.subtitle}>
-            {t(
-              "Pesquise impressoras, visualize grupos de acesso e adicione usuários via AD.",
-              "Search printers, view access groups and add users via AD."
-            )}
+            {t("Busque impressoras, visualize grupos de acesso e gerencie membros via AD.", "Search printers, view access groups and manage members via AD.")}
           </span>
         </div>
       </div>
 
-      {/* Search */}
-      <div className={styles.searchRow}>
+      {/* Search form */}
+      <form className={styles.searchRow} onSubmit={(e) => void handleSearch(e)}>
         <input
           className={styles.searchInput}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") void fetchPrinters(); }}
-          placeholder={t("Nome, fila ou localização…", "Name, queue or location…")}
-          disabled={printersLoading}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={t("Nome da impressora…", "Printer name…")}
+          disabled={loading}
+          autoFocus
         />
-        <button
-          className={styles.searchBtn}
-          onClick={() => void fetchPrinters()}
-          disabled={printersLoading}
-        >
-          {printersLoading ? <span className={styles.spinner} /> : t("Buscar", "Search")}
+        <button className={styles.searchBtn} type="submit" disabled={loading}>
+          {loading ? <span className={styles.spinner} /> : t("Buscar", "Search")}
         </button>
-      </div>
+      </form>
 
-      {printersError && <div className={styles.logError}>{printersError}</div>}
+      {resultMsg && (
+        <p className={result?.found ? styles.resultMsg : styles.muted}>{resultMsg}</p>
+      )}
 
-      {/* Printer list */}
-      {printers !== null && (
-        printers.length === 0 ? (
-          <div className={styles.emptyState}>
-            {t("Nenhuma impressora encontrada.", "No printers found.")}
-          </div>
-        ) : (
-          <div className={styles.printerList}>
-            {printers.map((printer) => {
-              const isOpen = expandedPrinterId === printer.id;
-              return (
-                <div key={printer.id}>
-                  <div
-                    className={`${styles.printerRow}${isOpen ? ` ${styles.active}` : ""}`}
-                    onClick={() => void handlePrinterClick(printer)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handlePrinterClick(printer); }}
-                  >
-                    <div className={styles.printerInfo}>
-                      <span className={styles.printerName}>{printer.name || printer.queue}</span>
-                      <span className={styles.printerMeta}>
-                        {[printer.queue, printer.location].filter(Boolean).join(" · ")}
-                      </span>
+      {/* Printer accordion */}
+      {result?.found && (
+        <div className={styles.accordion}>
+          {result.printers.map(printer => {
+            const isOpen = expandedPrinters.has(printer.name);
+            return (
+              <div key={printer.name} className={styles.accordionItem}>
+                <button type="button" className={styles.accordionToggle} onClick={() => togglePrinter(printer.name)}>
+                  <span className={`${styles.caret}${isOpen ? ` ${styles.caretOpen}` : ""}`}>▶</span>
+                  <span className={styles.accordionIcon}>🖨</span>
+                  <span className={styles.accordionCopy}>
+                    <span className={styles.accordionTitle}>{printer.name}</span>
+                    <span className={styles.accordionMeta}>{[printer.style, printer.description].filter(Boolean).join(" — ")}</span>
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className={styles.accordionContent}>
+                    <div className={styles.metaRow}>
+                      {printer.host && <span><strong>Host:</strong> {printer.host}</span>}
+                      {printer.port && <span><strong>Porta:</strong> {printer.port}</span>}
                     </div>
-                    <svg className={`${styles.chevron}${isOpen ? ` ${styles.chevronOpen}` : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m7 5 5 5-5 5" />
-                    </svg>
-                  </div>
 
-                  {isOpen && (
-                    <div className={styles.groupsPanel}>
-                      {groupsLoading && (
-                        <div className={styles.loadingRow}>
-                          <span className={styles.spinner} />
-                          {t("Carregando grupos…", "Loading groups…")}
+                    {/* Direct users */}
+                    {printer.direct_users.length > 0 && (
+                      <div className={styles.subpanel}>
+                        <h4 className={styles.subpanelTitle} style={{ color: "var(--success, #16a34a)" }}>
+                          {t(`Grupos com acesso direto (${printer.direct_users.length})`, `Direct access groups (${printer.direct_users.length})`)}
+                        </h4>
+                        <div className={styles.accordion}>
+                          {printer.direct_users.map((u, idx) => (
+                            <MemberGroupAccordion
+                              key={idx}
+                              groupName={u.account}
+                              memberKey={`direct-${printer.name}-${idx}`}
+                            />
+                          ))}
                         </div>
-                      )}
-                      {groupsError && <div className={styles.logError}>{groupsError}</div>}
-                      {groups !== null && groups.length === 0 && (
-                        <div className={styles.emptyState}>
-                          {t("Nenhum grupo encontrado.", "No groups found.")}
-                        </div>
-                      )}
-                      {groups?.map((group) => {
-                        const groupOpen = expandedGroupDn === group.group_dn;
-                        const ms = membersMap[group.group_dn];
-                        return (
-                          <div key={group.group_dn}>
-                            <div
-                              className={styles.groupRow}
-                              onClick={() => void handleGroupClick(group)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handleGroupClick(group); }}
-                            >
-                              <div>
-                                <div className={styles.groupName}>{group.name}</div>
-                                <div className={styles.groupDn}>{group.group_dn}</div>
-                              </div>
-                              <svg className={`${styles.chevron}${groupOpen ? ` ${styles.chevronOpen}` : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="m7 5 5 5-5 5" />
-                              </svg>
-                            </div>
+                      </div>
+                    )}
 
-                            {groupOpen && (
-                              <div className={styles.membersPanel}>
-                                {ms?.loading && (
-                                  <div className={styles.loadingRow}>
-                                    <span className={styles.spinner} />
-                                    {t("Carregando membros…", "Loading members…")}
-                                  </div>
-                                )}
-                                {ms?.error && <div className={styles.logError}>{ms.error}</div>}
-                                {ms?.data && ms.data.length === 0 && (
-                                  <div className={styles.emptyState}>
-                                    {t("Grupo sem membros.", "Group has no members.")}
-                                  </div>
-                                )}
-                                {ms?.data?.map((m) => (
-                                  <div key={m.dn} className={styles.memberRow}>
-                                    <span className={styles.memberName}>
-                                      {m.displayName || m.sAMAccountName || m.dn}
+                    {/* Roles */}
+                    {printer.roles.length > 0 && (
+                      <div className={styles.subpanel}>
+                        <h4 className={styles.subpanelTitle} style={{ color: "var(--info, #2563eb)" }}>
+                          {t(`Roles (${printer.roles.length})`, `Roles (${printer.roles.length})`)}
+                        </h4>
+                        <div className={styles.accordion}>
+                          {printer.roles.map((role, rIdx) => {
+                            const roleKey = `role-${printer.name}-${rIdx}`;
+                            const isRoleOpen = expandedRoles.has(roleKey);
+                            return (
+                              <div key={roleKey} className={styles.accordionItem}>
+                                <button type="button" className={styles.accordionToggle} onClick={() => toggleRole(roleKey)}>
+                                  <span className={`${styles.caret}${isRoleOpen ? ` ${styles.caretOpen}` : ""}`}>▶</span>
+                                  <span className={styles.accordionIcon}>🔐</span>
+                                  <span className={styles.accordionCopy}>
+                                    <span className={styles.accordionTitle}>
+                                      {role.name}
+                                      {role.role_type && <span className={styles.inlineBadge}>{role.role_type}</span>}
+                                      {role.members.length > 0 && (
+                                        <span className={styles.memberCount}>({role.members.length} member{role.members.length !== 1 ? "s" : ""})</span>
+                                      )}
                                     </span>
-                                    {m.sAMAccountName && (
-                                      <span className={styles.memberLogin}>{m.sAMAccountName}</span>
+                                  </span>
+                                </button>
+
+                                {isRoleOpen && (
+                                  <div className={styles.accordionContent}>
+                                    {role.members.length === 0 ? (
+                                      <span className={styles.muted}>{t("Nenhum membro neste role.", "No members in this role.")}</span>
+                                    ) : (
+                                      <div className={styles.accordion}>
+                                        {role.members.map((member, mIdx) => (
+                                          <MemberGroupAccordion
+                                            key={mIdx}
+                                            groupName={member.account}
+                                            memberKey={`member-${printer.name}-${rIdx}-${mIdx}`}
+                                          />
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
-                                ))}
-                                <button
-                                  className={styles.addBtn}
-                                  onClick={() => openAddModal(group)}
-                                  disabled={ms?.loading}
-                                >
-                                  {t("+ Adicionar usuário", "+ Add user")}
-                                </button>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Add user modal */}
       {addModal && (
-        <div className={styles.modalOverlay} onClick={(e) => { if (e.target === e.currentTarget) closeAddModal(); }}>
+        <div className={styles.modalOverlay} onClick={e => { if (e.target === e.currentTarget) closeAddModal(); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>{t("Adicionar usuário ao grupo", "Add user to group")}</h3>
-            <p className={styles.modalSubtitle}>{addModal.groupName}</p>
-
+            <p className={styles.modalSubtitle}>{addModal.group}</p>
             <div className={styles.modalField}>
-              <label className={styles.modalLabel}>
-                {t("Login, e-mail ou UPN", "Login, email or UPN")}
-              </label>
+              <label className={styles.modalLabel}>{t("Login, e-mail ou UPN", "Login, email or UPN")}</label>
               <input
                 className={styles.modalInput}
-                value={addUsername}
-                onChange={(e) => setAddUsername(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") void handleAddUser(); }}
-                placeholder={t("Ex.: mhalmeida ou mhalmeida@coamo.com.br", "Ex.: jdoe or jdoe@domain.com")}
+                value={addUser}
+                onChange={e => setAddUser(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") void handleAddUser(); }}
+                placeholder={t("Ex.: mhalmeida", "Ex.: jdoe")}
                 autoFocus
                 disabled={addLoading}
               />
             </div>
-
-            {addResult && (
-              <div className={
-                addResult.status === "added" ? styles.logOk :
-                addResult.status === "already_member" ? styles.logWarn :
-                styles.logError
-              }>
-                {addResult.message}
-              </div>
-            )}
-
+            {addMsg && <div className={addMsg.ok ? styles.logOk : styles.logError}>{addMsg.text}</div>}
             <div className={styles.modalActions}>
-              <button className={styles.btnSecondary} onClick={closeAddModal} disabled={addLoading}>
-                {t("Cancelar", "Cancel")}
-              </button>
-              <button
-                className={styles.btnPrimary}
-                onClick={() => void handleAddUser()}
-                disabled={addLoading || !addUsername.trim()}
-              >
+              <button className={`button secondary`} onClick={closeAddModal} disabled={addLoading}>{t("Cancelar", "Cancel")}</button>
+              <button className={`button`} onClick={() => void handleAddUser()} disabled={addLoading || !addUser.trim()}>
                 {addLoading ? <span className={styles.spinner} /> : t("Adicionar", "Add")}
               </button>
             </div>

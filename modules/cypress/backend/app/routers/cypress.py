@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from app.auth import TokenUser, verify_token
 from app.settings_client import get_cypress_settings
 from app.smb import fetch_smb_file, SmbError
-from app.xml_parser import parse_printers, parse_roles, search_printers
-from app.ldap_client import get_group_members, add_user_to_group, LdapError
+from app.xml_parser import parse_printers, parse_roles
+from app.ldap_client import get_group_members, add_user_to_group
 
 router = APIRouter(prefix="/api/cypress", tags=["cypress"])
 
@@ -18,53 +18,24 @@ def _require_cfg(cfg: dict, *keys: str) -> None:
         )
 
 
-class PrinterOut(BaseModel):
-    id: str
-    name: str
-    queue: str
-    location: str
-    description: str
-
-
-class GroupMemberOut(BaseModel):
-    dn: str
-    sAMAccountName: str
-    displayName: str
-    mail: str
-
-
-class GroupMembersOut(BaseModel):
-    status: str
-    group_dn: str
-    members: list[GroupMemberOut]
-
-
 class AddUserIn(BaseModel):
-    group_dn: str = Field(min_length=3, max_length=512)
-    username: str = Field(min_length=2, max_length=240)
+    group: str = Field(min_length=1, max_length=240)
+    user: str = Field(min_length=1, max_length=240)
 
 
-class AddUserOut(BaseModel):
-    status: str
-    user_dn: str | None
-    message: str
-
-
-@router.get("/printers", response_model=list[PrinterOut])
-async def list_printers(
-    search: str = Query(default="", max_length=200),
+@router.get("/printer/search")
+async def search_printer(
+    q: str = Query(..., min_length=1, description="Nome da impressora"),
     _user: TokenUser = Depends(verify_token),
-) -> list[PrinterOut]:
+) -> dict:
     cfg = await get_cypress_settings()
     _require_cfg(cfg, "SMB_SERVER", "SMB_SHARE", "SMB_DEVICES_FILE", "SMB_DOMAIN", "SMB_USERNAME", "SMB_PASSWORD")
 
-    remote_path = cfg.get("SMB_DEVICES_FILE", "").strip()
-
     try:
-        xml_bytes = fetch_smb_file(
+        devices_bytes = fetch_smb_file(
             server=cfg["SMB_SERVER"].strip(),
             share=cfg["SMB_SHARE"].strip(),
-            remote_path=remote_path,
+            remote_path=cfg["SMB_DEVICES_FILE"].strip(),
             domain=cfg["SMB_DOMAIN"].strip(),
             username=cfg["SMB_USERNAME"].strip(),
             password=cfg["SMB_PASSWORD"].strip(),
@@ -72,89 +43,70 @@ async def list_printers(
     except SmbError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    printers = parse_printers(xml_bytes)
-    matched = search_printers(printers, search)
-    return [
-        PrinterOut(
-            id=p.id,
-            name=p.name,
-            queue=p.queue,
-            location=p.location,
-            description=p.description,
-        )
-        for p in matched
-    ]
+    printers = parse_printers(devices_bytes, q)
+
+    if not printers:
+        return {"query": q, "found": False, "count": 0, "printers": []}
+
+    # Enrich roles with data from roles.xml
+    all_role_names = {role["name"] for p in printers for role in p["roles"] if role["name"]}
+    roles_data: dict = {}
+    if all_role_names and cfg.get("SMB_ROLES_PATH", "").strip():
+        try:
+            roles_bytes = fetch_smb_file(
+                server=cfg["SMB_SERVER"].strip(),
+                share=cfg["SMB_SHARE"].strip(),
+                remote_path=cfg["SMB_ROLES_PATH"].strip(),
+                domain=cfg["SMB_DOMAIN"].strip(),
+                username=cfg["SMB_USERNAME"].strip(),
+                password=cfg["SMB_PASSWORD"].strip(),
+            )
+            roles_data = parse_roles(roles_bytes, list(all_role_names))
+        except Exception:
+            pass
+
+    for printer in printers:
+        for role in printer["roles"]:
+            role_info = roles_data.get(role["name"])
+            if role_info:
+                role["description"] = role_info.get("description", "")
+                role["role_type"] = role_info.get("role_type", "")
+                role["members"] = role_info.get("members", [])
+                role["admins"] = role_info.get("admins", [])
+
+    return {"query": q, "found": True, "count": len(printers), "printers": printers}
 
 
-@router.get("/groups", response_model=list[dict])
-async def list_groups(
-    _user: TokenUser = Depends(verify_token),
-) -> list[dict]:
-    cfg = await get_cypress_settings()
-    _require_cfg(cfg, "SMB_SERVER", "SMB_SHARE", "SMB_ROLES_PATH", "SMB_DOMAIN", "SMB_USERNAME", "SMB_PASSWORD")
-
-    remote_path = cfg.get("SMB_ROLES_PATH", "").strip()
-
-    try:
-        xml_bytes = fetch_smb_file(
-            server=cfg["SMB_SERVER"].strip(),
-            share=cfg["SMB_SHARE"].strip(),
-            remote_path=remote_path,
-            domain=cfg["SMB_DOMAIN"].strip(),
-            username=cfg["SMB_USERNAME"].strip(),
-            password=cfg["SMB_PASSWORD"].strip(),
-        )
-    except SmbError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    roles = parse_roles(xml_bytes)
-    return [{"id": r.id, "name": r.name, "group_dn": r.group_dn} for r in roles]
-
-
-@router.get("/groups/{group_dn:path}/members", response_model=GroupMembersOut)
+@router.get("/group/members")
 async def group_members(
-    group_dn: str,
+    group: str = Query(..., min_length=1, description="Nome do grupo AD"),
     _user: TokenUser = Depends(verify_token),
-) -> GroupMembersOut:
+) -> dict:
     cfg = await get_cypress_settings()
     _require_cfg(cfg, "AD_SERVER", "AD_BASE_DN", "AD_USER", "AD_PASSWORD")
 
-    try:
-        members = get_group_members(
-            server=cfg["AD_SERVER"].strip(),
-            base_dn=cfg["AD_BASE_DN"].strip(),
-            bind_user_dn=cfg["AD_USER"].strip(),
-            bind_password=cfg["AD_PASSWORD"].strip(),
-            group_dn=group_dn,
-        )
-    except LdapError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    return GroupMembersOut(
-        status="ok",
-        group_dn=group_dn,
-        members=[GroupMemberOut(**m) for m in members],
+    return get_group_members(
+        server=cfg["AD_SERVER"].strip(),
+        base_dn=cfg["AD_BASE_DN"].strip(),
+        bind_user=cfg["AD_USER"].strip(),
+        bind_password=cfg["AD_PASSWORD"].strip(),
+        group_name=group,
     )
 
 
-@router.post("/groups/add-user", response_model=AddUserOut)
+@router.post("/group/add-user")
 async def group_add_user(
     payload: AddUserIn,
     _user: TokenUser = Depends(verify_token),
-) -> AddUserOut:
+) -> dict:
     cfg = await get_cypress_settings()
     _require_cfg(cfg, "AD_SERVER", "AD_BASE_DN", "AD_USER", "AD_PASSWORD")
 
-    try:
-        result = add_user_to_group(
-            server=cfg["AD_SERVER"].strip(),
-            base_dn=cfg["AD_BASE_DN"].strip(),
-            bind_user_dn=cfg["AD_USER"].strip(),
-            bind_password=cfg["AD_PASSWORD"].strip(),
-            group_dn=payload.group_dn,
-            username=payload.username,
-        )
-    except LdapError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    return AddUserOut(**result)
+    return add_user_to_group(
+        server=cfg["AD_SERVER"].strip(),
+        base_dn=cfg["AD_BASE_DN"].strip(),
+        bind_user=cfg["AD_USER"].strip(),
+        bind_password=cfg["AD_PASSWORD"].strip(),
+        group_name=payload.group,
+        username=payload.user,
+    )
