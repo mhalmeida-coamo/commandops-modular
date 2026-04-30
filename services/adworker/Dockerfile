@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     krb5-user \
     ldap-utils \
     libsasl2-modules-gssapi-mit \
+    wget \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/adworker-api /app/adworker-api
