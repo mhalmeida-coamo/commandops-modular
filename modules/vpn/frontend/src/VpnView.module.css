@@ -1,12 +1,11 @@
 /* ── Card wrapper ────────────────────────────────── */
 .card {
   display: grid;
-  gap: 22px;
-  background: var(--panel);
+  gap: 18px;
+  background: var(--bg-secondary);
   border: 1px solid var(--panel-border-strong);
-  border-radius: 20px;
-  padding: 28px 32px;
-  box-shadow: var(--surface-shadow);
+  border-radius: 18px;
+  padding: 24px 28px;
   max-width: 1100px;
 }
 
@@ -16,12 +15,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  flex-wrap: wrap;
 }
 
 .title {
-  margin: 0 0 6px;
-  font-size: 28px;
+  margin: 0 0 5px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -31,20 +29,19 @@
 .subtitle {
   display: block;
   color: var(--muted);
-  font-size: var(--text-sm);
+  font-size: 13px;
   max-width: 680px;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 /* ── Status pill ─────────────────────────────────── */
 .modePill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   border-radius: 999px;
   border: 1.5px solid;
-  min-height: 32px;
-  padding: 0 16px;
+  height: 30px;
+  padding: 0 14px;
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -54,72 +51,89 @@
 }
 
 .on {
-  border-color: color-mix(in srgb, var(--success) 60%, transparent);
+  border-color: var(--success);
   color: var(--success);
-  background: color-mix(in srgb, var(--success) 10%, transparent);
+  background: transparent;
 }
 
 .off {
-  border-color: color-mix(in srgb, var(--muted) 50%, transparent);
+  border-color: var(--muted);
   color: var(--muted);
-  background: color-mix(in srgb, var(--muted) 8%, transparent);
+  background: transparent;
 }
 
 /* ── Shell (controls grid) ───────────────────────── */
 .shell {
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
   align-items: stretch;
 }
 
 .userField {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: var(--text-sm);
+  gap: 8px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text);
   margin: 0;
 }
 
-.userField .input {
-  padding: 14px 18px;
-  font-size: var(--text-base);
-  border-radius: 14px;
-  margin-top: 0;
+.bigInput {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.bigInput::placeholder {
+  color: var(--muted);
+}
+
+.bigInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 93, 255, 0.12);
+}
+
+.bigInput:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* ── Mode card (toggle) ──────────────────────────── */
 .modeCard {
   border: 1px solid var(--panel-border-strong);
-  border-radius: 16px;
-  padding: 18px 20px;
+  border-radius: 14px;
+  padding: 16px 20px;
   background: linear-gradient(145deg,
-    color-mix(in srgb, var(--accent) 9%, var(--panel)),
-    color-mix(in srgb, var(--success) 6%, var(--panel))
+    color-mix(in srgb, var(--accent) 9%, var(--bg-secondary)),
+    color-mix(in srgb, var(--success) 6%, var(--bg-secondary))
   );
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   justify-content: center;
 }
 
-.modeCopy {
-  display: grid;
-  gap: 4px;
-}
-
 .modeCopy strong {
-  font-size: var(--text-base);
+  display: block;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  margin-bottom: 3px;
 }
 
 .modeCopy span {
-  font-size: var(--text-sm);
+  display: block;
+  font-size: 13px;
   color: var(--muted);
-  line-height: 1.4;
 }
 
 /* ── Toggle switch ───────────────────────────────── */
@@ -141,11 +155,11 @@
 
 .track {
   position: relative;
-  width: 58px;
-  height: 32px;
+  width: 56px;
+  height: 30px;
   border-radius: 999px;
-  border: 1px solid rgba(134, 152, 183, 0.4);
-  background: rgba(100, 116, 139, 0.32);
+  border: 1px solid rgba(134, 152, 183, 0.35);
+  background: rgba(100, 116, 139, 0.28);
   transition: background 0.22s ease, border-color 0.22s ease;
   flex-shrink: 0;
 }
@@ -154,17 +168,17 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 3px 10px rgba(2, 8, 23, 0.3);
+  box-shadow: 0 2px 8px rgba(2, 8, 23, 0.3);
   transition: transform 0.22s ease;
 }
 
 .toggleOn .track {
   border-color: color-mix(in srgb, var(--success) 55%, transparent);
-  background: color-mix(in srgb, var(--success) 75%, #064e3b 25%);
+  background: color-mix(in srgb, var(--success) 78%, #064e3b);
 }
 
 .toggleOn .thumb {
@@ -172,8 +186,8 @@
 }
 
 .toggleLabel {
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.1em;
   font-weight: 700;
   color: var(--muted);
 }
@@ -201,7 +215,7 @@
   border: 1px solid var(--panel-border-strong);
   border-radius: 14px;
   padding: 18px 20px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .resultGrid > div {
@@ -211,7 +225,7 @@
 }
 
 .resultGrid span {
-  font-size: var(--text-xs);
+  font-size: 11px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -219,38 +233,33 @@
 }
 
 .resultGrid strong {
-  font-size: var(--text-sm);
+  font-size: 13px;
   color: var(--text);
   font-family: var(--font-mono);
 }
 
 .logOk {
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--success) 32%, transparent);
   background: color-mix(in srgb, var(--success) 8%, transparent);
   color: var(--success);
-  font-size: var(--text-sm);
+  font-size: 13px;
   font-weight: 500;
 }
 
 .logWarn {
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, transparent);
   background: color-mix(in srgb, var(--warning) 8%, transparent);
   color: var(--warning);
-  font-size: var(--text-sm);
+  font-size: 13px;
   font-weight: 500;
 }
 
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 700px) {
-  .card {
-    padding: 20px 18px;
-  }
-
-  .shell {
-    grid-template-columns: 1fr;
-  }
+  .card { padding: 18px 16px; }
+  .shell { grid-template-columns: 1fr; }
 }
