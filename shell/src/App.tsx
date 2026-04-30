@@ -137,12 +137,10 @@ export function App() {
     <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
       <Sidebar
         modules={modules}
-        activeModuleId={showAdmin ? "__admin__" : (activeModule?.id ?? null)}
+        activeModuleId={activeModule?.id ?? null}
         collapsed={sidebarCollapsed}
-        isPlatformAdmin={auth.user.is_platform_admin}
         user={auth.user}
         onNavigate={handleNavigate}
-        onAdminOpen={handleAdminOpen}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
@@ -154,6 +152,7 @@ export function App() {
           theme={theme}
           onThemeToggle={toggleTheme}
           onLogout={handleLogout}
+          onAdminOpen={auth.user.is_platform_admin ? handleAdminOpen : undefined}
         />
 
         <div className="main-shell">

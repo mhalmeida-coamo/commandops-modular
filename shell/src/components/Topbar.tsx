@@ -8,6 +8,7 @@ type Props = {
   theme: AppTheme;
   onThemeToggle: () => void;
   onLogout: () => void;
+  onAdminOpen?: () => void;
 };
 
 function SunIcon() {
@@ -37,6 +38,23 @@ function MoonIcon() {
       strokeLinejoin="round"
     >
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function AdminIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ width: 15, height: 15, flexShrink: 0 }}
+    >
+      <path d="M12 3.5 4.5 7v6c0 4.2 3.3 6.6 7.5 8 4.2-1.4 7.5-3.8 7.5-8V7z" />
+      <path d="M9.5 12l1.8 1.8 3.7-4" />
     </svg>
   );
 }
@@ -127,7 +145,7 @@ function ModuleNavIcon({ id }: { id: string }) {
   }
 }
 
-export function Topbar({ activeModule, showAdmin, user, theme, onThemeToggle, onLogout }: Props) {
+export function Topbar({ activeModule, showAdmin, user, theme, onThemeToggle, onLogout, onAdminOpen }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -208,6 +226,20 @@ export function Topbar({ activeModule, showAdmin, user, theme, onThemeToggle, on
                     </span>
                     {theme === "dark" ? "Modo claro" : "Modo escuro"}
                   </button>
+
+                  {user?.is_platform_admin && onAdminOpen && (
+                    <>
+                      <div className="app-user-dropdown-divider" />
+                      <button
+                        className="app-user-dropdown-item"
+                        role="menuitem"
+                        onClick={() => { setDropdownOpen(false); onAdminOpen(); }}
+                      >
+                        <AdminIcon />
+                        Administração
+                      </button>
+                    </>
+                  )}
 
                   <div className="app-user-dropdown-divider" />
 

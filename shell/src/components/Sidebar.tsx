@@ -4,10 +4,8 @@ type Props = {
   modules: ModuleManifest[];
   activeModuleId: string | null;
   collapsed: boolean;
-  isPlatformAdmin: boolean;
   user?: { username: string; role?: string; is_platform_admin?: boolean } | null;
   onNavigate: (moduleId: string) => void;
-  onAdminOpen: () => void;
   onToggleCollapse: () => void;
 };
 
@@ -81,14 +79,6 @@ function ModuleIcon({ id }: { id: string }) {
   }
 }
 
-function AdminIcon() {
-  return (
-    <svg {...ICON_COMMON}>
-      <path d="M12 3.5 4.5 7v6c0 4.2 3.3 6.6 7.5 8 4.2-1.4 7.5-3.8 7.5-8V7z" />
-      <path d="M9.5 12l1.8 1.8 3.7-4" />
-    </svg>
-  );
-}
 
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   return (
@@ -109,10 +99,8 @@ export function Sidebar({
   modules,
   activeModuleId,
   collapsed,
-  isPlatformAdmin,
   user,
   onNavigate,
-  onAdminOpen,
   onToggleCollapse,
 }: Props) {
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? "??";
@@ -168,28 +156,6 @@ export function Sidebar({
           </nav>
         </div>
 
-        {/* Platform section — only for platform admins */}
-        {isPlatformAdmin && (
-          <div className="sidebar-section">
-            {!collapsed && (
-              <div className="sidebar-section-title">Plataforma</div>
-            )}
-            <nav className="nav">
-              <button
-                className={activeModuleId === "__admin__" ? "active" : ""}
-                onClick={onAdminOpen}
-                title={collapsed ? "Administração" : undefined}
-              >
-                <span className="nav-icon">
-                  <AdminIcon />
-                </span>
-                {!collapsed && (
-                  <span className="nav-label">Administração</span>
-                )}
-              </button>
-            </nav>
-          </div>
-        )}
 
       </div>
 
