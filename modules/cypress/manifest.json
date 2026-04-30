@@ -1,0 +1,13 @@
+{
+  "id": "cypress",
+  "name": "Cypress",
+  "description": "Gerenciamento de impressoras e grupos de acesso via Cypress",
+  "version": "1.0.0",
+  "nav_label": "Cypress",
+  "nav_order": 2,
+  "icon": "🖨️",
+  "remote_entry": "/assets/remoteEntry.js",
+  "exposed_component": "./ModuleView",
+  "api_prefix": "/api/cypress",
+  "health_endpoint": "/health"
+}

@@ -29,6 +29,8 @@ services:
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
       VPN_PUBLIC_URL: ${VPN_PUBLIC_URL:-http://localhost:5101}
       VPN_INTERNAL_URL: http://vpn:8080
+      CYPRESS_PUBLIC_URL: ${CYPRESS_PUBLIC_URL:-http://localhost:5102}
+      CYPRESS_INTERNAL_URL: http://cypress:8080
     ports:
       - "5010:8000"
     depends_on:
@@ -87,6 +89,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Cypress Module ──────────────────────────────────────────────────────────
+  cypress:
+    build:
+      context: ./modules/cypress
+      dockerfile: backend/Dockerfile
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
+      SHELL_ORIGIN: http://localhost:5000
+      REGISTRY_URL: http://registry:8000
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
+    ports:
+      - "5102:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Gateway (nginx) ─────────────────────────────────────────────────────────
   gateway:
     image: nginx:alpine
@@ -96,6 +116,7 @@ services:
       - "8080:80"
     depends_on:
       - vpn
+      - cypress
 
   # ── Shell (frontend host) ───────────────────────────────────────────────────
   shell:

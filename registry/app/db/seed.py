@@ -11,8 +11,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # URLs públicas (browser) — configurar via env em cada ambiente
 VPN_PUBLIC_URL     = os.environ.get("VPN_PUBLIC_URL",     "http://localhost:5101")
+CYPRESS_PUBLIC_URL = os.environ.get("CYPRESS_PUBLIC_URL", "http://localhost:5102")
 # URLs internas Docker — usadas apenas para health check do registry
-VPN_INTERNAL_URL   = os.environ.get("VPN_INTERNAL_URL",   "http://vpn:8080")
+VPN_INTERNAL_URL     = os.environ.get("VPN_INTERNAL_URL",     "http://vpn:8080")
+CYPRESS_INTERNAL_URL = os.environ.get("CYPRESS_INTERNAL_URL", "http://cypress:8080")
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
@@ -20,6 +22,19 @@ SETTINGS_SEED: dict[str, list[dict]] = {
     "vpn": [
         {"key": "AD_WORKER_URL",   "value": "", "is_secret": False},
         {"key": "AD_WORKER_TOKEN", "value": "", "is_secret": True},
+    ],
+    "cypress": [
+        {"key": "SMB_SERVER",       "value": "", "is_secret": False},
+        {"key": "SMB_SHARE",        "value": "", "is_secret": False},
+        {"key": "SMB_ROLES_PATH",   "value": "", "is_secret": False},
+        {"key": "SMB_DEVICES_FILE", "value": "", "is_secret": False},
+        {"key": "SMB_DOMAIN",       "value": "", "is_secret": False},
+        {"key": "SMB_USERNAME",     "value": "", "is_secret": False},
+        {"key": "SMB_PASSWORD",     "value": "", "is_secret": True},
+        {"key": "AD_SERVER",        "value": "", "is_secret": False},
+        {"key": "AD_BASE_DN",       "value": "", "is_secret": False},
+        {"key": "AD_USER",          "value": "", "is_secret": False},
+        {"key": "AD_PASSWORD",      "value": "", "is_secret": True},
     ],
 }
 
@@ -35,6 +50,19 @@ MODULES_SEED = [
         "remote_url":  f"{VPN_PUBLIC_URL}/assets/remoteEntry.js",
         "api_url":     VPN_PUBLIC_URL,
         "health_url":  VPN_INTERNAL_URL,
+        "required_roles": ["admin", "operador"],
+    },
+    {
+        "id": "cypress",
+        "name": "Cypress",
+        "description": "Gerenciamento de impressoras e grupos de acesso via Cypress",
+        "version": "1.0.0",
+        "nav_label": "Cypress",
+        "nav_order": 2,
+        "icon": "🖨️",
+        "remote_url":  f"{CYPRESS_PUBLIC_URL}/assets/remoteEntry.js",
+        "api_url":     CYPRESS_PUBLIC_URL,
+        "health_url":  CYPRESS_INTERNAL_URL,
         "required_roles": ["admin", "operador"],
     },
 ]
