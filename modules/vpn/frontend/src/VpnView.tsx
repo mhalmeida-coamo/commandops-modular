@@ -105,7 +105,7 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
         <label className={styles.userField}>
           <span>{t("Usuário AD (login, e-mail ou UPN)", "AD user (login, email or UPN)")}</span>
           <input
-            className={styles.bigInput}
+            className="input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t("Ex.: mhalmeida ou mhalmeida@coamo.com.br", "Example: mhalmeida or mhalmeida@coamo.com.br")}
