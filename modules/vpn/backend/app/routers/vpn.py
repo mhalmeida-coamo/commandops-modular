@@ -33,6 +33,56 @@ class VpnProcessOut(BaseModel):
     result: VpnResult
 
 
+class VpnStatusOut(BaseModel):
+    status: str
+    login: str
+    vpn_value: str
+
+
+@router.get("/status", response_model=VpnStatusOut)
+async def status(
+    username: str,
+    user: TokenUser = Depends(verify_token),
+) -> VpnStatusOut:
+    _ = user
+    username = username.strip()
+    if len(username) < 3:
+        raise HTTPException(status_code=400, detail="username inválido")
+
+    cfg = await get_vpn_settings()
+    ad_worker_url = cfg.get("AD_WORKER_URL", "").strip().rstrip("/")
+    ad_worker_token = cfg.get("AD_WORKER_TOKEN", "").strip()
+
+    if not ad_worker_url or not ad_worker_token:
+        raise HTTPException(
+            status_code=503,
+            detail="AD Worker não configurado. Defina AD_WORKER_URL e AD_WORKER_TOKEN no painel admin.",
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=AD_WORKER_TIMEOUT) as client:
+            res = await client.post(
+                f"{ad_worker_url}/operations/vpn-user/status",
+                json={"username": username},
+                headers={"X-Worker-Token": ad_worker_token},
+            )
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="AD Worker timeout") from exc
+    except httpx.ConnectError as exc:
+        raise HTTPException(status_code=503, detail=f"AD Worker indisponível: {exc}") from exc
+
+    if not res.is_success:
+        detail = res.text
+        try:
+            detail = res.json().get("detail", detail)
+        except Exception:
+            pass
+        raise HTTPException(status_code=502, detail=f"AD Worker error: {detail}")
+
+    data = res.json()
+    return VpnStatusOut(status="ok", login=str(data.get("login", username)), vpn_value=str(data.get("vpn_value", "NOT_SET")))
+
+
 @router.post("/process", response_model=VpnProcessOut)
 async def process(
     payload: VpnProcessIn,

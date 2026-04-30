@@ -11,7 +11,6 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(9px);
-  animation: vpnReveal 320ms ease both;
 }
 
 .card::before {
@@ -141,7 +140,6 @@
   border-radius: 999px;
   border: 1px solid rgba(134, 152, 183, 0.45);
   background: rgba(100, 116, 139, 0.34);
-  transition: background-color 0.24s ease, border-color 0.24s ease;
   flex-shrink: 0;
 }
 
@@ -154,7 +152,6 @@
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(2, 8, 23, 0.28);
-  transition: transform 0.24s ease;
 }
 
 .toggleOn .track {
@@ -181,6 +178,11 @@
 .actions {
   display: flex;
   justify-content: flex-start;
+}
+
+.switchHint {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* ── Results ─────────────────────────────────────── */
@@ -296,16 +298,5 @@
 @media (max-width: 1100px) {
   .shell {
     grid-template-columns: 1fr;
-  }
-}
-
-@keyframes vpnReveal {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

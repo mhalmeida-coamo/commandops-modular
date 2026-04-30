@@ -219,6 +219,12 @@ class VpnUserRequest(BaseModel):
     run_as: str | None = Field(default=None, max_length=240)
 
 
+class VpnUserStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    username: str = Field(min_length=3, max_length=240)
+
+
 GroupAction = Literal["removed", "added", "already_absent", "already_present", "not_found", "failed"]
 
 
@@ -238,6 +244,17 @@ class VpnUserResult(BaseModel):
     internet_mail_action: GroupAction
     internet_mail_group: str
     warnings: list[str] = Field(default_factory=list)
+
+
+class VpnUserStatusResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["ok"]
+    username: str
+    login: str
+    display_name: str
+    user_dn: str
+    vpn_value: Literal["TRUE", "NOT_SET"]
 
 
 def planned_capabilities() -> list[str]:

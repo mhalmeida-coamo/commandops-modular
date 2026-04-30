@@ -44,19 +44,23 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
   const [error, setError] = useState("");
   const [result, setResult] = useState<VpnResult | null>(null);
   const [appliedEnabled, setAppliedEnabled] = useState(true);
+  const [validatingStatus, setValidatingStatus] = useState(false);
 
   function alreadyInState(r: VpnResult): boolean {
     if (appliedEnabled) return r.previous_vpn_value === "TRUE";
     return r.previous_vpn_value === "NOT_SET";
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!username.trim() || loading) return;
+  async function applyPolicy(requestedEnabled: boolean) {
+    if (!username.trim() || loading) {
+      if (!username.trim()) {
+        setError(t("Informe o usuário AD antes de alternar o switch.", "Provide the AD user before toggling the switch."));
+      }
+      return;
+    }
     setError("");
     setResult(null);
     setLoading(true);
-    const requestedEnabled = enabled;
     try {
       const res = await fetch(`${apiBase}/api/vpn/process`, {
         method: "POST",
@@ -71,6 +75,8 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
         throw new Error(err.detail ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as VpnResponse;
+      const isActiveNow = data.result.vpn_value === "TRUE";
+      setEnabled(isActiveNow);
       setAppliedEnabled(requestedEnabled);
       setResult(data.result);
       setUsername("");
@@ -81,10 +87,33 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
     }
   }
 
+  async function validateCurrentStatus() {
+    const user = username.trim();
+    if (!user || user.length < 3 || loading) return;
+    setValidatingStatus(true);
+    setError("");
+    try {
+      const res = await fetch(`${apiBase}/api/vpn/status?username=${encodeURIComponent(user)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = (await res.json()) as { detail?: string };
+        throw new Error(err.detail ?? `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { vpn_value: "TRUE" | "NOT_SET" };
+      const isActive = data.vpn_value === "TRUE";
+      setEnabled(isActive);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao validar status");
+    } finally {
+      setValidatingStatus(false);
+    }
+  }
+
   return (
     <form
       className={`${styles.card} ${theme === "dark" ? styles.themeDark : styles.themeLight}`}
-      onSubmit={handleSubmit}
+      onSubmit={(e) => e.preventDefault()}
     >
       <div className={styles.headline}>
         <div>
@@ -111,6 +140,7 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
             className="input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onBlur={() => { void validateCurrentStatus(); }}
             placeholder={t("Ex.: mhalmeida ou mhalmeida@coamo.com.br", "Example: mhalmeida or mhalmeida@coamo.com.br")}
             disabled={loading}
           />
@@ -136,7 +166,11 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
             aria-checked={enabled}
             aria-label={t("Alternar política VPN", "Toggle VPN policy")}
             className={`${styles.toggle} ${enabled ? styles.toggleOn : styles.toggleOff}`}
-            onClick={() => setEnabled((v) => !v)}
+            onClick={() => {
+              const next = !enabled;
+              setEnabled(next);
+              void applyPolicy(next);
+            }}
             disabled={loading}
           >
             <span className={styles.track} aria-hidden="true">
@@ -150,15 +184,13 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
       </div>
 
       <div className={styles.actions}>
-        <button
-          type="submit"
-          className="button"
-          disabled={loading || !username.trim()}
-        >
+        <span className={styles.switchHint}>
           {loading
-            ? t("Processando...", "Processing...")
-            : t("Aplicar política VPN", "Apply VPN policy")}
-        </button>
+            ? t("Aplicando política...", "Applying policy...")
+            : validatingStatus
+              ? t("Validando estado atual da VPN...", "Validating current VPN status...")
+              : t("Altere o switch para executar a ação imediatamente.", "Toggle the switch to execute the action immediately.")}
+        </span>
       </div>
 
       {error && <div className="alert">{error}</div>}

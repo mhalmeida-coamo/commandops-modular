@@ -19,6 +19,8 @@ from .operations import (
     TransferUserRequest,
     TransferUserResult,
     VpnUserRequest,
+    VpnUserStatusRequest,
+    VpnUserStatusResult,
     VpnUserResult,
     planned_capabilities,
 )
@@ -847,6 +849,41 @@ def _execute_vpn_user(payload: VpnUserRequest) -> VpnUserResult:
         conn.unbind()
 
 
+def _fetch_vpn_user_status(payload: VpnUserStatusRequest) -> VpnUserStatusResult:
+    _ensure_ticket()
+    conn = _connect_ldap()
+    try:
+        user_dn = _resolve_user_dn(conn, payload.username)
+        ok = conn.search(
+            search_base=user_dn,
+            search_filter="(objectClass=*)",
+            search_scope=BASE,
+            attributes=["displayName", "sAMAccountName", "distinguishedName", "msNPAllowDialin"],
+            size_limit=1,
+        )
+        if not ok or not conn.entries:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado para consulta de VPN.")
+
+        attrs = conn.entries[0].entry_attributes_as_dict
+        login = _first_attr(attrs, "sAMAccountName") or str(payload.username or "").strip()
+        display_name = _first_attr(attrs, "displayName") or login
+        current_dn = _first_attr(attrs, "distinguishedName") or user_dn
+        vpn_value = "TRUE" if str(_first_attr(attrs, "msNPAllowDialin")).upper() == "TRUE" else "NOT_SET"
+
+        return VpnUserStatusResult(
+            status="ok",
+            username=str(payload.username or "").strip(),
+            login=login,
+            display_name=display_name,
+            user_dn=current_dn,
+            vpn_value=vpn_value,
+        )
+    except LDAPException as exc:
+        raise HTTPException(status_code=502, detail=f"Falha LDAP no ad-worker: {exc}") from exc
+    finally:
+        conn.unbind()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if settings.auto_kinit and settings.token_configured and settings.keytab_exists and not has_ticket():
@@ -919,3 +956,8 @@ def dismiss_users_execute(payload: DismissUsersRequest):
 @app.post("/operations/vpn-user/execute", dependencies=[Depends(require_api_token)])
 def vpn_user_execute(payload: VpnUserRequest):
     return _execute_vpn_user(payload)
+
+
+@app.post("/operations/vpn-user/status", dependencies=[Depends(require_api_token)])
+def vpn_user_status(payload: VpnUserStatusRequest):
+    return _fetch_vpn_user_status(payload)
