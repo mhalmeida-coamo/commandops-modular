@@ -5,6 +5,7 @@ type Props = {
   activeModuleId: string | null;
   collapsed: boolean;
   isPlatformAdmin: boolean;
+  user?: { username: string; role?: string; is_platform_admin?: boolean } | null;
   onNavigate: (moduleId: string) => void;
   onAdminOpen: () => void;
   onToggleCollapse: () => void;
@@ -91,8 +92,14 @@ function AdminIcon() {
 
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d={collapsed ? "m7 5 5 5-5 5" : "m12 5-5 5 5 5"} />
     </svg>
   );
@@ -103,75 +110,100 @@ export function Sidebar({
   activeModuleId,
   collapsed,
   isPlatformAdmin,
+  user,
   onNavigate,
   onAdminOpen,
   onToggleCollapse,
 }: Props) {
+  const initials = user?.username?.slice(0, 2).toUpperCase() ?? "??";
+  const roleLabel = user?.is_platform_admin ? "Admin" : (user?.role ?? "Usuário");
+
   return (
-    <aside className={`shell-sidebar${collapsed ? " collapsed" : ""}`} style={{ position: "relative" }}>
+    <aside className={`sidebar${collapsed ? " collapsed" : ""}`} style={{ position: "relative" }}>
 
       <button
-        className="shell-sidebar-collapse-btn"
+        className="sidebar-collapse-toggle"
         onClick={onToggleCollapse}
         title={collapsed ? "Expandir menu" : "Recolher menu"}
+        aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
       >
         <CollapseIcon collapsed={collapsed} />
       </button>
 
       {/* Brand */}
-      <div className="shell-sidebar-brand">
-        <span className="shell-sidebar-brand-icon">⚙️</span>
+      <div className="sidebar-brand">
+        <span className="sidebar-brand-icon">⚙️</span>
         {!collapsed && (
-          <div className="shell-sidebar-brand-text">
+          <div className="sidebar-brand-text">
             <strong>CommandOps</strong>
             <span>Operations Portal</span>
           </div>
         )}
       </div>
 
-      {/* Modules section */}
-      <div className="shell-sidebar-sections">
-        <section className="shell-sidebar-section">
+      {/* Sections */}
+      <div className="sidebar-sections">
+
+        {/* Modules section */}
+        <div className="sidebar-section">
           {!collapsed && (
-            <div className="shell-sidebar-section-title">Módulos</div>
+            <div className="sidebar-section-title">Módulos</div>
           )}
-          <nav className="shell-sidebar-nav">
+          <nav className="nav">
             {modules.map((mod) => (
               <button
                 key={mod.id}
-                className={`shell-nav-item${activeModuleId === mod.id ? " active" : ""}`}
+                className={activeModuleId === mod.id ? "active" : ""}
                 onClick={() => onNavigate(mod.id)}
                 title={collapsed ? mod.nav_label : undefined}
               >
-                <span className="shell-nav-item-icon">
+                <span className="nav-icon">
                   <ModuleIcon id={mod.id} />
                 </span>
                 {!collapsed && (
-                  <span className="shell-nav-item-label">{mod.nav_label}</span>
+                  <span className="nav-label">{mod.nav_label}</span>
                 )}
               </button>
             ))}
           </nav>
-        </section>
+        </div>
+
+        {/* Platform section — only for platform admins */}
+        {isPlatformAdmin && (
+          <div className="sidebar-section">
+            {!collapsed && (
+              <div className="sidebar-section-title">Plataforma</div>
+            )}
+            <nav className="nav">
+              <button
+                className={activeModuleId === "__admin__" ? "active" : ""}
+                onClick={onAdminOpen}
+                title={collapsed ? "Administração" : undefined}
+              >
+                <span className="nav-icon">
+                  <AdminIcon />
+                </span>
+                {!collapsed && (
+                  <span className="nav-label">Administração</span>
+                )}
+              </button>
+            </nav>
+          </div>
+        )}
+
       </div>
 
-      {/* Bottom — admin + collapse */}
-      <div className="shell-sidebar-bottom">
-        {isPlatformAdmin && (
-          <button
-            className={`shell-nav-item${activeModuleId === "__admin__" ? " active" : ""}`}
-            onClick={onAdminOpen}
-            title={collapsed ? "Administração" : undefined}
-          >
-            <span className="shell-nav-item-icon">
-              <AdminIcon />
-            </span>
-            {!collapsed && (
-              <span className="shell-nav-item-label">Administração</span>
-            )}
-          </button>
+      {/* Bottom user card */}
+      <div className="sidebar-user">
+        <span className="sidebar-user-avatar">{initials}</span>
+        {!collapsed && (
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{user?.username ?? "—"}</span>
+            <span className="sidebar-user-role">{roleLabel}</span>
+          </div>
         )}
       </div>
+
     </aside>
   );
 }

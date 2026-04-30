@@ -97,13 +97,9 @@ export function App() {
     return (
       <div className="login">
         <form className="login-card" onSubmit={handleLogin}>
-          <div className="login-brand">
-            <span className="login-brand-icon">⚙️</span>
-            <div>
-              <div className="login-title">CommandOps</div>
-              <div className="login-subtitle">Operations Portal</div>
-            </div>
-          </div>
+          <p className="login-eyebrow">Operations Portal</p>
+          <h2>CommandOps</h2>
+          <p>Faça login para acessar o painel de operações.</p>
 
           {loginError && <div className="alert">{loginError}</div>}
 
@@ -113,6 +109,7 @@ export function App() {
               className="input"
               value={loginForm.username}
               onChange={(e) => setLoginForm((f) => ({ ...f, username: e.target.value }))}
+              autoComplete="username"
               autoFocus
             />
           </label>
@@ -124,6 +121,7 @@ export function App() {
               type="password"
               value={loginForm.password}
               onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
+              autoComplete="current-password"
             />
           </label>
 
@@ -136,18 +134,19 @@ export function App() {
   }
 
   return (
-    <div className={`shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+    <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
       <Sidebar
         modules={modules}
         activeModuleId={showAdmin ? "__admin__" : (activeModule?.id ?? null)}
         collapsed={sidebarCollapsed}
         isPlatformAdmin={auth.user.is_platform_admin}
+        user={auth.user}
         onNavigate={handleNavigate}
         onAdminOpen={handleAdminOpen}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
-      <div className="shell-main">
+      <div className="main">
         <Topbar
           activeModule={activeModule}
           showAdmin={showAdmin}
@@ -157,7 +156,7 @@ export function App() {
           onLogout={handleLogout}
         />
 
-        <main className="shell-content">
+        <div className="main-shell">
           {modulesLoading ? (
             <div className="module-loading">
               <span className="spinner" />
@@ -181,7 +180,7 @@ export function App() {
               <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
             </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

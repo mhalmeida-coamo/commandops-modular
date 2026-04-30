@@ -3,39 +3,35 @@
 /* ── Design tokens — light (default) ───────────────────────── */
 :root,
 :root[data-theme="light"] {
-  --bg:                  #eaf2fb;
-  --bg-primary:          #eaf2fb;
-  --bg-secondary:        #ffffff;
-  --bg-tertiary:         #f3f8ff;
-  --panel:               #ffffff;
-  --panel-soft:          #f7fbff;
-  --border:              #ccd9e8;
-  --panel-border:        #ccd9e8;
-  --panel-border-strong: #c3d3e5;
-  --text:                #0f172a;
-  --text-secondary:      #334155;
-  --muted:               #5d708b;
-  --accent:              #255dff;
-  --accent-hover:        #1a4dd4;
-  --accent-2:            #0ea5a4;
-  --success:             #0ea86d;
-  --warning:             #d97706;
-  --danger:              #dc4b72;
-  --info:                #1d4ed8;
-
+  --bg:                   #eaf2fb;
+  --bg-primary:           #eaf2fb;
+  --bg-secondary:         #ffffff;
+  --bg-tertiary:          #f3f8ff;
+  --panel:                #ffffff;
+  --panel-soft:           #f7fbff;
+  --border:               #ccd9e8;
+  --text:                 #0f172a;
+  --muted:                #5d708b;
+  --accent:               #255dff;
+  --accent-2:             #0ea5a4;
+  --success:              #0ea86d;
+  --warning:              #d97706;
+  --danger:               #dc4b72;
+  --info:                 #1d4ed8;
+  --shadow:               0 12px 28px rgba(15, 23, 42, 0.08);
   --shell-sidebar:        #f6faff;
   --shell-sidebar-border: #d3dfed;
   --shell-sidebar-hover:  #eaf2ff;
   --shell-sidebar-active: linear-gradient(135deg, rgba(37, 93, 255, 0.96), rgba(26, 68, 196, 0.9));
-
   --input-bg:             #ffffff;
-  --shadow:               0 12px 28px rgba(15, 23, 42, 0.08);
+  --panel-border-strong:  #c3d3e5;
   --surface-shadow:       0 8px 20px rgba(148, 163, 184, 0.10);
-  --surface-shadow-strong:0 16px 34px rgba(148, 163, 184, 0.14);
+  --surface-shadow-strong: 0 16px 34px rgba(148, 163, 184, 0.14);
+  --text-on-accent:       #0f172a;
 
   /* layout */
   --sidebar-width:           284px;
-  --sidebar-collapsed-width: 80px;
+  --sidebar-collapsed-width: 104px;
   --topbar-height:           68px;
   --main-padding:            clamp(18px, 2vw, 32px);
 
@@ -52,40 +48,35 @@
   --radius:    10px;
   --radius-sm: 6px;
   --radius-lg: 18px;
-  --radius-xl: 22px;
+  --radius-xl: 24px;
 }
 
 /* ── Design tokens — dark ───────────────────────────────────── */
 :root[data-theme="dark"] {
-  --bg:                  #07101f;
-  --bg-primary:          #07101f;
-  --bg-secondary:        #0d1629;
-  --bg-tertiary:         #111d33;
-  --panel:               rgba(12, 19, 36, 0.90);
-  --panel-soft:          rgba(17, 29, 51, 0.78);
-  --border:              #23324f;
-  --panel-border:        #23324f;
-  --panel-border-strong: rgba(34, 51, 82, 0.95);
-  --text:                #e7edf8;
-  --text-secondary:      #94a3b8;
-  --muted:               #8a96ad;
-  --accent:              #275de8;
-  --accent-hover:        #1a4dd4;
-  --accent-2:            #24c4b6;
-  --success:             #28d39a;
-  --warning:             #fbbf24;
-  --danger:              #ff7b93;
-  --info:                #6ca6ff;
-
+  --bg:                   #07101f;
+  --bg-primary:           #07101f;
+  --bg-secondary:         #0d1629;
+  --bg-tertiary:          #111d33;
+  --panel:                rgba(12, 19, 36, 0.9);
+  --panel-soft:           rgba(17, 29, 51, 0.78);
+  --border:               #23324f;
+  --text:                 #e7edf8;
+  --muted:                #8a96ad;
+  --accent:               #275de8;
+  --accent-2:             #24c4b6;
+  --success:              #28d39a;
+  --warning:              #fbbf24;
+  --danger:               #ff7b93;
+  --info:                 #6ca6ff;
+  --shadow:               0 14px 32px rgba(1, 8, 20, 0.3);
   --shell-sidebar:        rgba(9, 16, 31, 0.88);
   --shell-sidebar-border: rgba(33, 50, 81, 0.92);
   --shell-sidebar-hover:  rgba(23, 34, 56, 0.96);
   --shell-sidebar-active: linear-gradient(135deg, rgba(43, 90, 209, 0.98), rgba(37, 93, 255, 0.92));
-
   --input-bg:             rgba(8, 14, 28, 0.98);
-  --shadow:               0 14px 32px rgba(1, 8, 20, 0.30);
+  --panel-border-strong:  rgba(34, 51, 82, 0.95);
   --surface-shadow:       0 8px 20px rgba(2, 6, 23, 0.18);
-  --surface-shadow-strong:0 14px 30px rgba(2, 6, 23, 0.24);
+  --surface-shadow-strong: 0 14px 30px rgba(2, 6, 23, 0.24);
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -102,15 +93,16 @@ html {
 body {
   font-family: var(--font);
   font-size: var(--text-base);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 20%), var(--bg-primary);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 20%), var(--bg-primary);
   color: var(--text);
   line-height: 1.5;
-  min-height: 100dvh;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 :root[data-theme="dark"] body {
-  background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent 18%), var(--bg-primary);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%), var(--bg-primary);
 }
 
 input, button, select, textarea { font: inherit; }
