@@ -1,7 +1,7 @@
 .PHONY: dev dev-shell dev-registry dev-module build push test lint typecheck \
         new-module clean logs ps
 
-COMPOSE      := docker compose
+COMPOSE      := docker compose --env-file .env.local
 COMPOSE_PROD := $(COMPOSE) -f docker-compose.yml
 COMPOSE_DEV  := $(COMPOSE_PROD) -f docker-compose.dev.yml
 

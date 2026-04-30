@@ -9,6 +9,7 @@ from app.models.user import User
 from app.routers.auth import verify_token
 
 router = APIRouter(prefix="/modules", tags=["settings"])
+INTERNAL_SETTING_PREFIX = "__meta_"
 
 
 class SettingOut(BaseModel):
@@ -30,6 +31,10 @@ def _require_module(module_id: str, db: Session) -> Module:
     return mod
 
 
+def _is_internal_key(key: str) -> bool:
+    return key.startswith(INTERNAL_SETTING_PREFIX)
+
+
 @router.get("/{module_id}/settings", response_model=list[SettingOut])
 def get_settings(
     module_id: str,
@@ -43,6 +48,7 @@ def get_settings(
     return [
         SettingOut(key=r.key, value="***" if r.is_secret else r.value, is_secret=r.is_secret)
         for r in rows
+        if not _is_internal_key(r.key)
     ]
 
 
@@ -61,12 +67,15 @@ def put_settings(
         r.key: r
         for r in db.query(ModuleSetting).filter(ModuleSetting.module_id == module_id).all()
     }
+    editable_existing = {k: v for k, v in existing.items() if not _is_internal_key(k)}
 
     incoming_keys = set()
     for item in body:
         incoming_keys.add(item.key)
-        if item.key in existing:
-            row = existing[item.key]
+        if _is_internal_key(item.key):
+            raise HTTPException(status_code=400, detail="Chave reservada para uso interno")
+        if item.key in editable_existing:
+            row = editable_existing[item.key]
             row.is_secret = item.is_secret
             if not (item.is_secret and item.value == "***"):
                 row.value = item.value
@@ -78,7 +87,7 @@ def put_settings(
                 is_secret=item.is_secret,
             ))
 
-    for key, row in existing.items():
+    for key, row in editable_existing.items():
         if key not in incoming_keys:
             db.delete(row)
 
@@ -88,6 +97,7 @@ def put_settings(
     return [
         SettingOut(key=r.key, value="***" if r.is_secret else r.value, is_secret=r.is_secret)
         for r in rows
+        if not _is_internal_key(r.key)
     ]
 
 
