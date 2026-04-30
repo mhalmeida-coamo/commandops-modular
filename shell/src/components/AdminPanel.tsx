@@ -4,11 +4,99 @@ import type { ModuleManifest, ModuleSetting } from "../types";
 type Props = {
   modules: ModuleManifest[];
   token: string;
+  onClose: () => void;
 };
 
 type SettingRow = ModuleSetting & { dirty?: boolean };
 
-function SettingsEditor({ moduleId, token }: { moduleId: string; token: string }) {
+// ── Icons ────────────────────────────────────────────────────────
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 4.5 7v6c0 4.2 3.3 6.6 7.5 8 4.2-1.4 7.5-3.8 7.5-8V7z" />
+      <path d="M9.5 12l1.8 1.8 3.7-4" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ModulesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="2" />
+      <rect x="13" y="3" width="8" height="8" rx="2" />
+      <rect x="3" y="13" width="8" height="8" rx="2" />
+      <rect x="13" y="13" width="8" height="8" rx="2" />
+    </svg>
+  );
+}
+
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
+      <circle cx="7.5" cy="15.5" r="3.5" />
+      <path d="M11 12l9-9M17 6l2 2" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, flexShrink: 0 }}>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <path d="M1 1l22 22" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
+  );
+}
+
+// ── Settings editor ──────────────────────────────────────────────
+
+function SettingsEditor({ moduleId, moduleName, token }: { moduleId: string; moduleName: string; token: string }) {
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,10 +138,7 @@ function SettingsEditor({ moduleId, token }: { moduleId: string; token: string }
     try {
       const res = await fetch(`/registry/modules/${moduleId}/settings`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify(rows.map(({ key, value, is_secret }) => ({ key, value, is_secret }))),
       });
       if (!res.ok) {
@@ -73,7 +158,7 @@ function SettingsEditor({ moduleId, token }: { moduleId: string; token: string }
 
   if (loading) {
     return (
-      <div className="module-loading" style={{ minHeight: 80 }}>
+      <div className="admin-content-loading">
         <span className="spinner" />
         <span>Carregando configurações…</span>
       </div>
@@ -81,169 +166,205 @@ function SettingsEditor({ moduleId, token }: { moduleId: string; token: string }
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="admin-settings-editor">
+      <div className="admin-settings-header">
+        <div>
+          <h3>{moduleName}</h3>
+          <p>Variáveis de configuração e segredos do módulo</p>
+        </div>
+        <button className="button" onClick={save} disabled={saving}>
+          <SaveIcon />
+          {saving ? "Salvando…" : "Salvar alterações"}
+        </button>
+      </div>
+
       {error && <div className="alert">{error}</div>}
       {success && (
-        <div
-          className="alert"
-          style={{
-            background: "rgba(34,197,94,0.1)",
-            borderColor: "rgba(34,197,94,0.3)",
-            color: "var(--success)",
-          }}
-        >
+        <div className="alert admin-alert-success">
           Configurações salvas com sucesso.
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 80px 36px",
-            gap: 8,
-            fontSize: "var(--text-xs)",
-            color: "var(--muted)",
-            padding: "0 4px",
-          }}
-        >
+      <div className="admin-settings-table">
+        <div className="admin-settings-table-head">
           <span>Chave</span>
           <span>Valor</span>
           <span style={{ textAlign: "center" }}>Segredo</span>
           <span />
         </div>
 
+        {rows.length === 0 && (
+          <div className="admin-settings-empty">
+            Nenhuma configuração definida para este módulo.
+          </div>
+        )}
+
         {rows.map((row, idx) => (
-          <div
-            key={idx}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 80px 36px",
-              gap: 8,
-              alignItems: "center",
-            }}
-          >
-            <input
-              className="input"
-              value={row.key}
-              placeholder="CHAVE"
-              style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}
-              onChange={(e) => updateRow(idx, { key: e.target.value })}
-            />
-            <input
-              className="input"
-              type={row.is_secret ? "password" : "text"}
-              value={row.value}
-              placeholder={row.is_secret ? "••••••••" : "valor"}
-              style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}
-              onChange={(e) => updateRow(idx, { value: e.target.value })}
-            />
-            <div style={{ display: "flex", justifyContent: "center" }}>
+          <div className="admin-settings-row" key={idx}>
+            <div className="admin-settings-cell">
+              <span className="admin-settings-key-icon"><KeyIcon /></span>
               <input
-                type="checkbox"
-                checked={row.is_secret}
-                onChange={(e) => updateRow(idx, { is_secret: e.target.checked })}
-                style={{ width: 16, height: 16, cursor: "pointer" }}
+                className="input admin-input-mono"
+                value={row.key}
+                placeholder="NOME_DA_CHAVE"
+                onChange={(e) => updateRow(idx, { key: e.target.value })}
               />
             </div>
-            <button
-              className="button danger"
-              style={{ padding: "6px", width: 32, height: 32, justifyContent: "center" }}
-              onClick={() => removeRow(idx)}
-              title="Remover"
-            >
-              ✕
-            </button>
+            <div className="admin-settings-cell">
+              {row.is_secret && <span className="admin-settings-key-icon"><EyeOffIcon /></span>}
+              <input
+                className="input admin-input-mono"
+                type={row.is_secret ? "password" : "text"}
+                value={row.value}
+                placeholder={row.is_secret ? "••••••••" : "valor"}
+                onChange={(e) => updateRow(idx, { value: e.target.value })}
+              />
+            </div>
+            <div className="admin-settings-cell admin-settings-secret-col">
+              <label className="admin-secret-toggle">
+                <input
+                  type="checkbox"
+                  checked={row.is_secret}
+                  onChange={(e) => updateRow(idx, { is_secret: e.target.checked })}
+                />
+                <span className="admin-secret-toggle-label">
+                  {row.is_secret ? "Sim" : "Não"}
+                </span>
+              </label>
+            </div>
+            <div className="admin-settings-cell admin-settings-action-col">
+              <button
+                className="admin-remove-btn"
+                onClick={() => removeRow(idx)}
+                title="Remover variável"
+              >
+                <TrashIcon />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-        <button className="button secondary" onClick={addRow}>
-          + Adicionar
-        </button>
-        <button className="button" onClick={save} disabled={saving}>
-          {saving ? "Salvando…" : "Salvar"}
-        </button>
+      <button className="button secondary admin-add-btn" onClick={addRow}>
+        <PlusIcon />
+        Adicionar variável
+      </button>
+    </div>
+  );
+}
+
+// ── Modules section ──────────────────────────────────────────────
+
+function ModulesSection({
+  modules,
+  token,
+  selectedId,
+  onSelect,
+}: {
+  modules: ModuleManifest[];
+  token: string;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const selected = modules.find((m) => m.id === selectedId) ?? null;
+
+  return (
+    <div className="admin-modules-layout">
+      <div className="admin-modules-list">
+        <div className="admin-modules-list-title">Módulos registrados</div>
+        {modules.map((mod) => (
+          <button
+            key={mod.id}
+            className={`admin-module-item${selectedId === mod.id ? " active" : ""}`}
+            onClick={() => onSelect(mod.id)}
+          >
+            <span className="admin-module-item-icon">{mod.icon ?? "⚙"}</span>
+            <div className="admin-module-item-info">
+              <strong>{mod.name}</strong>
+              <span>{mod.id} · v{mod.version}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-modules-content">
+        {selected ? (
+          <SettingsEditor moduleId={selected.id} moduleName={selected.name} token={token} />
+        ) : (
+          <div className="admin-content-loading">
+            <span style={{ color: "var(--muted)", fontSize: "var(--text-sm)" }}>
+              Selecione um módulo para configurar.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function AdminPanel({ modules, token }: Props) {
-  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
+// ── AdminPanel ───────────────────────────────────────────────────
+
+type AdminSection = "modules";
+
+export function AdminPanel({ modules, token, onClose }: Props) {
+  const [section, setSection] = useState<AdminSection>("modules");
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
+    modules[0]?.id ?? null
+  );
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div>
-        <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 700, marginBottom: 4 }}>
-          Administração
-        </h2>
-        <p style={{ fontSize: "var(--text-sm)", color: "var(--muted)" }}>
-          Configurações de módulos da plataforma.
-        </p>
-      </div>
+    <div className="admin-overlay">
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {modules.map((mod) => (
-          <div
-            key={mod.id}
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--panel-border)",
-              borderRadius: "var(--radius-lg)",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              onClick={() => setOpenModuleId(openModuleId === mod.id ? null : mod.id)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "16px 20px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <span style={{ fontSize: 20 }}>{mod.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, color: "var(--text)", fontSize: "var(--text-sm)" }}>
-                  {mod.name}
-                </div>
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: 2 }}>
-                  {mod.id} · v{mod.version}
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--muted)",
-                  transform: openModuleId === mod.id ? "rotate(180deg)" : "none",
-                  transition: "transform 0.2s",
-                  display: "inline-block",
-                }}
-              >
-                ▼
-              </span>
-            </button>
-
-            {openModuleId === mod.id && (
-              <div
-                style={{
-                  padding: "0 20px 20px",
-                  borderTop: "1px solid var(--panel-border)",
-                  paddingTop: 16,
-                }}
-              >
-                <SettingsEditor moduleId={mod.id} token={token} />
-              </div>
-            )}
+      {/* ── Admin header ── */}
+      <header className="admin-header">
+        <div className="admin-header-left">
+          <span className="admin-header-icon"><ShieldIcon /></span>
+          <div className="admin-header-title">
+            <strong>Administração da Plataforma</strong>
+            <span>CommandOps · Configurações globais</span>
           </div>
-        ))}
+        </div>
+        <button className="admin-close-btn" onClick={onClose}>
+          <CloseIcon />
+          Fechar
+        </button>
+      </header>
+
+      {/* ── Admin body ── */}
+      <div className="admin-body">
+
+        {/* Left nav */}
+        <nav className="admin-nav">
+          <div className="admin-nav-group">
+            <div className="admin-nav-group-title">Configuração</div>
+            <button
+              className={`admin-nav-item${section === "modules" ? " active" : ""}`}
+              onClick={() => setSection("modules")}
+            >
+              <span className="admin-nav-item-icon"><ModulesIcon /></span>
+              Módulos
+            </button>
+          </div>
+        </nav>
+
+        {/* Main content */}
+        <main className="admin-main">
+          {section === "modules" && (
+            <ModulesSection
+              modules={modules}
+              token={token}
+              selectedId={selectedModuleId}
+              onSelect={setSelectedModuleId}
+            />
+          )}
+        </main>
+
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import type { AppTheme, ModuleManifest, UserInfo } from "../types";
 
 type Props = {
   activeModule: ModuleManifest | null;
-  showAdmin: boolean;
   user: UserInfo | null;
   theme: AppTheme;
   onThemeToggle: () => void;
@@ -145,7 +144,7 @@ function ModuleNavIcon({ id }: { id: string }) {
   }
 }
 
-export function Topbar({ activeModule, showAdmin, user, theme, onThemeToggle, onLogout, onAdminOpen }: Props) {
+export function Topbar({ activeModule, user, theme, onThemeToggle, onLogout, onAdminOpen }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -166,9 +165,7 @@ export function Topbar({ activeModule, showAdmin, user, theme, onThemeToggle, on
   return (
     <header className="app-topbar">
       <div className="app-topbar-title">
-        {showAdmin ? (
-          <strong>Administração</strong>
-        ) : activeModule ? (
+        {activeModule ? (
           <>
             <span className="app-topbar-title-icon">
               <ModuleNavIcon id={activeModule.id} />

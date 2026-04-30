@@ -93,6 +93,10 @@ export function App() {
     setActiveModuleId(null);
   }
 
+  function handleAdminClose() {
+    setShowAdmin(false);
+  }
+
   if (!auth) {
     return (
       <div className="login">
@@ -134,53 +138,56 @@ export function App() {
   }
 
   return (
-    <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
-      <Sidebar
-        modules={modules}
-        activeModuleId={activeModule?.id ?? null}
-        collapsed={sidebarCollapsed}
-        user={auth.user}
-        onNavigate={handleNavigate}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-      />
-
-      <div className="main">
-        <Topbar
-          activeModule={activeModule}
-          showAdmin={showAdmin}
+    <>
+      <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
+        <Sidebar
+          modules={modules}
+          activeModuleId={activeModule?.id ?? null}
+          collapsed={sidebarCollapsed}
           user={auth.user}
-          theme={theme}
-          onThemeToggle={toggleTheme}
-          onLogout={handleLogout}
-          onAdminOpen={auth.user.is_platform_admin ? handleAdminOpen : undefined}
+          onNavigate={handleNavigate}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         />
 
-        <div className="main-shell">
-          {modulesLoading ? (
-            <div className="module-loading">
-              <span className="spinner" />
-              <span>Carregando módulos…</span>
-            </div>
-          ) : showAdmin ? (
-            <AdminPanel modules={modules} token={auth.token} />
-          ) : activeModule ? (
-            <ModuleLoader
-              module={activeModule}
-              moduleProps={{
-                token: auth.token,
-                user: auth.user,
-                apiBase: activeModule.api_url,
-                theme,
-                language,
-              }}
-            />
-          ) : (
-            <div className="module-loading">
-              <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
-            </div>
-          )}
+        <div className="main">
+          <Topbar
+            activeModule={activeModule}
+            user={auth.user}
+            theme={theme}
+            onThemeToggle={toggleTheme}
+            onLogout={handleLogout}
+            onAdminOpen={auth.user.is_platform_admin ? handleAdminOpen : undefined}
+          />
+
+          <div className="main-shell">
+            {modulesLoading ? (
+              <div className="module-loading">
+                <span className="spinner" />
+                <span>Carregando módulos…</span>
+              </div>
+            ) : activeModule ? (
+              <ModuleLoader
+                module={activeModule}
+                moduleProps={{
+                  token: auth.token,
+                  user: auth.user,
+                  apiBase: activeModule.api_url,
+                  theme,
+                  language,
+                }}
+              />
+            ) : (
+              <div className="module-loading">
+                <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {showAdmin && (
+        <AdminPanel modules={modules} token={auth.token} onClose={handleAdminClose} />
+      )}
+    </>
   );
 }
