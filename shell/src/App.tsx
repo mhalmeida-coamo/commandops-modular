@@ -97,15 +97,12 @@ export function App() {
     return (
       <div className="login">
         <form className="login-card" onSubmit={handleLogin}>
-          <img
-            src="/favicon.png"
-            alt="CommandOps"
-            className="login-logo"
-            style={{ height: 36 }}
-          />
-          <div>
-            <div className="login-title">CommandOps</div>
-            <div className="login-subtitle">Operations console</div>
+          <div className="login-brand">
+            <span className="login-brand-icon">⚙️</span>
+            <div>
+              <div className="login-title">CommandOps</div>
+              <div className="login-subtitle">Operations Portal</div>
+            </div>
           </div>
 
           {loginError && <div className="alert">{loginError}</div>}
@@ -139,7 +136,7 @@ export function App() {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <Sidebar
         modules={modules}
         activeModuleId={showAdmin ? "__admin__" : (activeModule?.id ?? null)}
@@ -153,6 +150,7 @@ export function App() {
       <div className="shell-main">
         <Topbar
           activeModule={activeModule}
+          showAdmin={showAdmin}
           user={auth.user}
           theme={theme}
           onThemeToggle={toggleTheme}
