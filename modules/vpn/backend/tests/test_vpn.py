@@ -46,9 +46,11 @@ def test_process_missing_ad_worker(client: TestClient) -> None:
 def test_process_success(client: TestClient) -> None:
     mock_response_data = {
         "login": "mhalmeida",
+        "previous_vpn_value": "NOT_SET",
         "vpn_value": "TRUE",
-        "group_action": "removed",
-        "group_name": "GRP-BLOQUEIO-ENVIO-EXTERNO",
+        "bloqueio_ext_action": "removed",
+        "internet_mail_action": "added",
+        "internet_mail_group": "GRP-INTERNET-MAIL",
         "warnings": [],
     }
 
@@ -61,9 +63,10 @@ def test_process_success(client: TestClient) -> None:
     mock_client.__aexit__ = AsyncMock(return_value=False)
     mock_client.post = AsyncMock(return_value=mock_httpx_response)
 
-    with patch("app.routers.vpn.AD_WORKER_URL", "http://adworker:8010"), \
-         patch("app.routers.vpn.AD_WORKER_TOKEN", "test-token"), \
-         patch("app.routers.vpn.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.routers.vpn.get_vpn_settings",
+        new=AsyncMock(return_value={"AD_WORKER_URL": "http://adworker:8010", "AD_WORKER_TOKEN": "test-token"}),
+    ), patch("app.routers.vpn.httpx.AsyncClient", return_value=mock_client):
         res = client.post(
                 "/api/vpn/process",
                 json={"username": "mhalmeida", "enabled": True},
@@ -74,5 +77,6 @@ def test_process_success(client: TestClient) -> None:
     data = res.json()
     assert data["status"] == "ok"
     assert data["result"]["login"] == "mhalmeida"
+    assert data["result"]["previous_vpn_value"] == "NOT_SET"
     assert data["result"]["vpn_value"] == "TRUE"
-    assert data["result"]["group_action"] == "removed"
+    assert data["result"]["bloqueio_ext_action"] == "removed"

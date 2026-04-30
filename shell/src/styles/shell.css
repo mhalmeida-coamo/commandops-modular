@@ -3,6 +3,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 284px minmax(0, 1fr);
+  animation: shellReveal 420ms ease-out both;
 }
 
 .shell.sidebar-is-collapsed {
@@ -15,6 +16,7 @@
   padding: 18px 14px 16px;
   background: var(--shell-sidebar);
   border-right: 1px solid var(--shell-sidebar-border);
+  box-shadow: inset -1px 0 0 var(--glass-border);
   height: 100vh;
   overflow: visible;
   display: flex;
@@ -22,6 +24,7 @@
   gap: 16px;
   position: sticky;
   top: 0;
+  backdrop-filter: blur(14px);
 }
 
 .sidebar.collapsed {
@@ -124,7 +127,7 @@
   padding: 12px 10px 10px;
   border: 1px solid var(--panel-border-strong);
   border-radius: 20px;
-  background: var(--shell-sidebar);
+  background: color-mix(in srgb, var(--shell-sidebar) 78%, white 22%);
   box-shadow: var(--surface-shadow);
   flex-shrink: 0;
 }
@@ -190,6 +193,11 @@
   border-color: rgba(37, 99, 235, 0.28);
   color: #f8fbff;
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+}
+
+:root[data-theme="dark"] .nav button.active {
+  border-color: rgba(86, 137, 229, 0.45);
+  box-shadow: 0 14px 34px rgba(23, 90, 217, 0.34);
 }
 
 .nav-label {
@@ -303,9 +311,15 @@
   padding: 10px clamp(18px, 2vw, 32px);
   margin-left: calc(-1 * clamp(18px, 2vw, 32px));
   margin-right: calc(-1 * clamp(18px, 2vw, 32px));
-  background: var(--panel);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 24px rgba(14, 24, 44, 0.08);
+}
+
+:root[data-theme="dark"] .app-topbar {
+  border-bottom-color: rgba(68, 94, 141, 0.4);
+  box-shadow: 0 14px 28px rgba(0, 10, 28, 0.45);
 }
 
 .app-topbar-title {
@@ -317,6 +331,7 @@
 
 .app-topbar-title strong {
   font-size: var(--text-lg);
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -400,6 +415,11 @@
 .app-user-pill.open {
   border-color: rgba(120, 141, 180, 0.42);
   box-shadow: 0 10px 28px rgba(4, 10, 24, 0.12);
+}
+
+:root[data-theme="dark"] .app-user-pill:hover,
+:root[data-theme="dark"] .app-user-pill.open {
+  box-shadow: 0 14px 34px rgba(1, 10, 28, 0.44);
 }
 
 .app-user-avatar {
@@ -550,6 +570,7 @@
   border-radius: 24px;
   padding: 20px;
   box-shadow: var(--surface-shadow);
+  backdrop-filter: blur(8px);
 }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
@@ -558,7 +579,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  background: linear-gradient(135deg, var(--accent), #1d4ed8);
+  background: linear-gradient(135deg, var(--accent), #0b3f9e);
   border: 1px solid transparent;
   color: #f8fbff;
   font-weight: 600;
@@ -663,7 +684,7 @@
   background:
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
     radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.12), transparent 28%),
-    linear-gradient(180deg, rgba(6, 11, 21, 0.98), rgba(10, 18, 34, 0.98));
+    linear-gradient(150deg, rgba(7, 15, 30, 0.985), rgba(12, 20, 38, 0.985));
 }
 
 .login-card {
@@ -676,6 +697,7 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  animation: loginReveal 480ms cubic-bezier(0.19, 1, 0.22, 1) both;
 }
 
 .login-brand {
@@ -701,6 +723,7 @@
 
 .login-card h2 {
   font-size: 32px;
+  font-family: var(--font-display);
   letter-spacing: -0.03em;
   line-height: 1.04;
   font-weight: 700;
@@ -735,6 +758,15 @@
 /* ── Module containers ───────────────────────────────────────── */
 .module-frame {
   width: 100%;
+  animation: contentReveal 280ms ease both;
+}
+
+:root[data-theme="dark"] .module-frame {
+  border: 1px solid rgba(71, 101, 149, 0.34);
+  border-radius: 26px;
+  padding: 8px;
+  background:
+    linear-gradient(160deg, rgba(15, 28, 51, 0.72), rgba(8, 17, 34, 0.74));
 }
 
 .module-loading {
@@ -767,6 +799,18 @@
 
 /* ── Spinner ─────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shellReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes loginReveal {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes contentReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .spinner {
   width: 18px;
@@ -866,6 +910,7 @@
 
 .admin-header-title strong {
   font-size: var(--text-lg);
+  font-family: var(--font-display);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.015em;

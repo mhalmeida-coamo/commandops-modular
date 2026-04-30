@@ -1,33 +1,33 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap");
 
 /* ── Design tokens — light (default) ───────────────────────── */
 :root,
 :root[data-theme="light"] {
-  --bg:                   #eaf2fb;
-  --bg-primary:           #eaf2fb;
+  --bg:                   #edf2f8;
+  --bg-primary:           #edf2f8;
   --bg-secondary:         #ffffff;
-  --bg-tertiary:          #f3f8ff;
-  --panel:                #ffffff;
-  --panel-soft:           #f7fbff;
-  --border:               #ccd9e8;
-  --text:                 #0f172a;
-  --muted:                #5d708b;
-  --accent:               #255dff;
-  --accent-2:             #0ea5a4;
+  --bg-tertiary:          #f4f8fd;
+  --panel:                #ffffffd9;
+  --panel-soft:           #f8fbff;
+  --border:               #c9d6e6;
+  --text:                 #0e1b2f;
+  --muted:                #556a86;
+  --accent:               #0d5bd7;
+  --accent-2:             #0e9f95;
   --success:              #0ea86d;
   --warning:              #d97706;
   --danger:               #dc4b72;
   --info:                 #1d4ed8;
-  --shadow:               0 12px 28px rgba(15, 23, 42, 0.08);
-  --shell-sidebar:        #f6faff;
-  --shell-sidebar-border: #d3dfed;
-  --shell-sidebar-hover:  #eaf2ff;
-  --shell-sidebar-active: linear-gradient(135deg, rgba(37, 93, 255, 0.96), rgba(26, 68, 196, 0.9));
+  --shadow:               0 16px 34px rgba(11, 27, 53, 0.09);
+  --shell-sidebar:        #f7fafdcc;
+  --shell-sidebar-border: #d4dfec;
+  --shell-sidebar-hover:  #e8f0fb;
+  --shell-sidebar-active: linear-gradient(135deg, rgba(13, 91, 215, 0.96), rgba(7, 52, 136, 0.92));
   --input-bg:             #ffffff;
   --panel-border-strong:  #c3d3e5;
-  --surface-shadow:       0 8px 20px rgba(148, 163, 184, 0.10);
-  --surface-shadow-strong: 0 16px 34px rgba(148, 163, 184, 0.14);
-  --text-on-accent:       #0f172a;
+  --surface-shadow:       0 10px 26px rgba(42, 74, 114, 0.12);
+  --surface-shadow-strong: 0 18px 38px rgba(24, 47, 78, 0.18);
+  --text-on-accent:       #f8fbff;
 
   /* layout */
   --sidebar-width:           284px;
@@ -36,7 +36,8 @@
   --main-padding:            clamp(18px, 2vw, 32px);
 
   /* typography */
-  --font:      "Inter", "Segoe UI", system-ui, sans-serif;
+  --font:      "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Sora", "IBM Plex Sans", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
   --text-xs:   11px;
   --text-sm:   13px;
@@ -49,34 +50,36 @@
   --radius-sm: 6px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+  --glass-border: rgba(255, 255, 255, 0.42);
 }
 
 /* ── Design tokens — dark ───────────────────────────────────── */
 :root[data-theme="dark"] {
-  --bg:                   #07101f;
-  --bg-primary:           #07101f;
-  --bg-secondary:         #0d1629;
-  --bg-tertiary:          #111d33;
+  --bg:                   #081427;
+  --bg-primary:           #081427;
+  --bg-secondary:         #0d1a2f;
+  --bg-tertiary:          #12203a;
   --panel:                rgba(12, 19, 36, 0.9);
   --panel-soft:           rgba(17, 29, 51, 0.78);
   --border:               #23324f;
-  --text:                 #e7edf8;
-  --muted:                #8a96ad;
-  --accent:               #275de8;
+  --text:                 #ebf2ff;
+  --muted:                #93a4bf;
+  --accent:               #2f7dfb;
   --accent-2:             #24c4b6;
   --success:              #28d39a;
   --warning:              #fbbf24;
   --danger:               #ff7b93;
   --info:                 #6ca6ff;
   --shadow:               0 14px 32px rgba(1, 8, 20, 0.3);
-  --shell-sidebar:        rgba(9, 16, 31, 0.88);
-  --shell-sidebar-border: rgba(33, 50, 81, 0.92);
+  --shell-sidebar:        rgba(10, 19, 37, 0.82);
+  --shell-sidebar-border: rgba(43, 62, 96, 0.88);
   --shell-sidebar-hover:  rgba(23, 34, 56, 0.96);
   --shell-sidebar-active: linear-gradient(135deg, rgba(43, 90, 209, 0.98), rgba(37, 93, 255, 0.92));
   --input-bg:             rgba(8, 14, 28, 0.98);
   --panel-border-strong:  rgba(34, 51, 82, 0.95);
-  --surface-shadow:       0 8px 20px rgba(2, 6, 23, 0.18);
-  --surface-shadow-strong: 0 14px 30px rgba(2, 6, 23, 0.24);
+  --surface-shadow:       0 12px 28px rgba(2, 8, 24, 0.28);
+  --surface-shadow-strong: 0 18px 38px rgba(2, 8, 24, 0.42);
+  --glass-border: rgba(122, 163, 224, 0.22);
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -93,7 +96,11 @@ html {
 body {
   font-family: var(--font);
   font-size: var(--text-base);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 20%), var(--bg-primary);
+  background:
+    radial-gradient(circle at 10% 5%, rgba(13, 91, 215, 0.11), transparent 28%),
+    radial-gradient(circle at 88% 0%, rgba(14, 159, 149, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 22%),
+    var(--bg-primary);
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
@@ -102,7 +109,11 @@ body {
 }
 
 :root[data-theme="dark"] body {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%), var(--bg-primary);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(47, 125, 251, 0.24), transparent 30%),
+    radial-gradient(circle at 95% 6%, rgba(14, 159, 149, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+    var(--bg-primary);
 }
 
 input, button, select, textarea { font: inherit; }

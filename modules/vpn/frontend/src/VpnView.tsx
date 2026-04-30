@@ -35,7 +35,7 @@ const GROUP_ACTION_LABEL: Record<GroupAction, string> = {
   failed: "Falha",
 };
 
-export default function VpnView({ token, apiBase, language }: ModuleProps) {
+export default function VpnView({ token, apiBase, language, theme }: ModuleProps) {
   const t = (pt: string, en: string) => (language === "pt-BR" ? pt : en);
 
   const [username, setUsername] = useState("");
@@ -82,7 +82,10 @@ export default function VpnView({ token, apiBase, language }: ModuleProps) {
   }
 
   return (
-    <form className={styles.card} onSubmit={handleSubmit}>
+    <form
+      className={`${styles.card} ${theme === "dark" ? styles.themeDark : styles.themeLight}`}
+      onSubmit={handleSubmit}
+    >
       <div className={styles.headline}>
         <div>
           <h2 className={styles.title}>VPN</h2>
