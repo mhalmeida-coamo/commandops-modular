@@ -1,4 +1,6 @@
 import type { ModuleManifest } from "../types";
+import logoExpanded from "../assets/logo-commandops.png";
+import logoCollapsed from "../assets/commandops-menu-collapsed.png";
 
 type Props = {
   modules: ModuleManifest[];
@@ -120,10 +122,13 @@ export function Sidebar({
 
       {/* Brand */}
       <div className="sidebar-brand">
-        <span className="sidebar-brand-icon">⚙️</span>
+        <img
+          src={collapsed ? logoCollapsed : logoExpanded}
+          alt="CommandOps"
+          className={`sidebar-brand-logo${collapsed ? " is-collapsed" : ""}`}
+        />
         {!collapsed && (
           <div className="sidebar-brand-text">
-            <strong>CommandOps</strong>
             <span>Operations Portal</span>
           </div>
         )}

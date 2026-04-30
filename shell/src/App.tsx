@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import type { AppLanguage, ModuleManifest, UserInfo } from "./types";
+import logoExpanded from "./assets/logo-commandops.png";
 import { useTheme } from "./hooks/useTheme";
 import { useModules } from "./hooks/useModules";
 import { Sidebar } from "./components/Sidebar";
@@ -101,8 +102,9 @@ export function App() {
     return (
       <div className="login">
         <form className="login-card" onSubmit={handleLogin}>
-          <p className="login-eyebrow">Operations Portal</p>
-          <h2>CommandOps</h2>
+          <div className="login-brand">
+            <img src={logoExpanded} alt="CommandOps" className="login-brand-logo" />
+          </div>
           <p>Faça login para acessar o painel de operações.</p>
 
           {loginError && <div className="alert">{loginError}</div>}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ModuleManifest, ModuleSetting } from "../types";
+import logoExpanded from "../assets/logo-commandops.png";
 
 type Props = {
   modules: ModuleManifest[];
@@ -11,15 +12,6 @@ type SettingRow = ModuleSetting & { dirty?: boolean };
 
 // ── Icons ────────────────────────────────────────────────────────
 
-function ShieldIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5 4.5 7v6c0 4.2 3.3 6.6 7.5 8 4.2-1.4 7.5-3.8 7.5-8V7z" />
-      <path d="M9.5 12l1.8 1.8 3.7-4" />
-    </svg>
-  );
-}
 
 function CloseIcon() {
   return (
@@ -324,10 +316,10 @@ export function AdminPanel({ modules, token, onClose }: Props) {
       {/* ── Admin header ── */}
       <header className="admin-header">
         <div className="admin-header-left">
-          <span className="admin-header-icon"><ShieldIcon /></span>
+          <img src={logoExpanded} alt="CommandOps" className="admin-header-logo" />
           <div className="admin-header-title">
             <strong>Administração da Plataforma</strong>
-            <span>CommandOps · Configurações globais</span>
+            <span>Configurações globais</span>
           </div>
         </div>
         <button className="admin-close-btn" onClick={onClose}>
