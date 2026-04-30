@@ -79,7 +79,7 @@ new-module:
 	@echo "Criando módulo $(NAME)..."
 	@mkdir -p modules/$(NAME)/{frontend/src,backend/{app/routers,tests}}
 	@cp -r modules/vpn/frontend/package.json modules/$(NAME)/frontend/package.json
-	@cp modules/vpn/backend/requirements.txt modules/$(NAME)/backend/requirements.txt
+	@cp registry/requirements.txt modules/$(NAME)/backend/requirements.txt
 	@sed -i 's/vpn/$(NAME)/g' modules/$(NAME)/frontend/package.json
 	@echo "Módulo $(NAME) criado em modules/$(NAME)/"
 	@echo "Edite o manifest.json e implemente o componente principal."

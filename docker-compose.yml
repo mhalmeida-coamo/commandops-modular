@@ -20,34 +20,33 @@ services:
   # ── Module Registry ─────────────────────────────────────────────────────────
   registry:
     build:
-      context: ./registry
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./registry/Dockerfile
     environment:
       POSTGRES_URL: postgresql://commandops:commandops@postgres:5432/commandops_registry
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
-      VPN_PUBLIC_URL: ${VPN_PUBLIC_URL:-http://localhost:5101}
-      VPN_INTERNAL_URL: http://vpn:8080
-      CYPRESS_PUBLIC_URL: ${CYPRESS_PUBLIC_URL:-http://localhost:5102}
-      CYPRESS_INTERNAL_URL: http://cypress:8080
     ports:
       - "5010:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8000/health >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ── AD Worker ───────────────────────────────────────────────────────────────
-  adworker:
+  # ── VPN AD Worker (Go façade) ───────────────────────────────────────────────
+  vpn_adworker:
     build:
-      context: ./services/adworker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/adworker/Dockerfile
     environment:
+      AD_WORKER_HOST: 0.0.0.0
+      AD_WORKER_PORT: 8010
+      AD_WORKER_API_TOKEN: ${VPN_AD_WORKER_TOKEN:-trocar-token-vpn}
       AD_REALM: ${AD_REALM:-COAMO.COM.BR}
       AD_DOMAIN: ${AD_DOMAIN:-coamo.com.br}
       AD_BASE_DN: ${AD_BASE_DN:-DC=coamo,DC=com,DC=br}
@@ -56,17 +55,14 @@ services:
       AD_KRB5_CONFIG: /etc/krb5.conf
       AD_KEYTAB_PATH: /run/secrets/svc_infratools_ad.keytab
       AD_SERVICE_PRINCIPAL: ${AD_SERVICE_PRINCIPAL:-svc_infratools_ad@COAMO.COM.BR}
-      AD_WORKER_API_TOKEN: ${AD_WORKER_TOKEN}
       AD_WORKER_AUTO_KINIT: ${AD_WORKER_AUTO_KINIT:-true}
-      AD_WORKER_ALLOW_PASSWORD_OPS: ${AD_WORKER_ALLOW_PASSWORD_OPS:-false}
-      AD_WORKER_DEFAULT_DRY_RUN: ${AD_WORKER_DEFAULT_DRY_RUN:-true}
     volumes:
       - ./services/adworker/krb5.conf:/etc/krb5.conf:ro
-      - ${AD_WORKER_KEYTAB_PATH:-/opt/commandops/secrets/svc_infratools_ad.keytab}:/run/secrets/svc_infratools_ad.keytab:ro
+      - ${AD_WORKER_KEYTAB_PATH:-./services/adworker/secrets/svc_infratools_ad.keytab}:/run/secrets/svc_infratools_ad.keytab:ro
     ports:
-      - "8010:8010"
+      - "8011:8010"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/health')\""]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8010/health >/dev/null 2>&1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -79,30 +75,12 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
       SHELL_ORIGIN: http://localhost:5000
-      REGISTRY_URL: http://registry:8000
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
+      AD_WORKER_URL: ${AD_WORKER_URL:-http://vpn_adworker:8010}
+      AD_WORKER_TOKEN: ${VPN_AD_WORKER_TOKEN:-}
     ports:
       - "5101:8080"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── Cypress Module ──────────────────────────────────────────────────────────
-  cypress:
-    build:
-      context: ./modules/cypress
-      dockerfile: backend/Dockerfile
-    environment:
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
-      SHELL_ORIGIN: http://localhost:5000
-      REGISTRY_URL: http://registry:8000
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
-    ports:
-      - "5102:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -116,7 +94,6 @@ services:
       - "8080:80"
     depends_on:
       - vpn
-      - cypress
 
   # ── Shell (frontend host) ───────────────────────────────────────────────────
   shell:

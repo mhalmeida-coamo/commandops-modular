@@ -29,15 +29,6 @@ function ModuleIcon({ id }: { id: string }) {
           <path d="M10.2 10.3V9.1a1.8 1.8 0 0 1 3.6 0v1.2" />
         </svg>
       );
-    case "cypress":
-      return (
-        <svg {...ICON_COMMON}>
-          <path d="M7 8.5V5.8a1.3 1.3 0 0 1 1.3-1.3h7.4A1.3 1.3 0 0 1 17 5.8v2.7" />
-          <rect x="5" y="8.5" width="14" height="7.8" rx="2.2" />
-          <path d="M8 12h.01M16 12h.01" />
-          <path d="M8.5 16.3h7v3.2h-7z" />
-        </svg>
-      );
     case "azure":
     case "postfix":
     case "azure_squid":

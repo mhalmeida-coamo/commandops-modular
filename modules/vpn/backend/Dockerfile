@@ -6,17 +6,19 @@ RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-FROM python:3.12-slim AS final
+FROM golang:1.24-alpine AS go-build
+WORKDIR /src
+COPY backend/go.mod backend/go.sum* ./backend/
+WORKDIR /src/backend
+RUN go mod download
+COPY backend/ .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/vpn-api ./cmd/vpn-api
 
+FROM alpine:3.20
 WORKDIR /app
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
-
-COPY backend/app ./app
+RUN adduser -D -H appuser
+COPY --from=go-build /out/vpn-api /app/vpn-api
 COPY --from=frontend-build /frontend/dist /app/static
-
-ENV PYTHONUNBUFFERED=1
+USER appuser
 EXPOSE 8080
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/app/vpn-api"]
