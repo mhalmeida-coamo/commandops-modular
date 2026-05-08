@@ -1,0 +1,44 @@
+# Módulo MDM — stack independente
+# Para subir: docker compose -f /opt/commandops-modular/modules/mdm/docker-compose.yml up -d
+
+services:
+
+  mdm-module:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: commandops-mdm-module
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      SHELL_ORIGIN: ${SHELL_ORIGIN:-http://localhost:3000}
+      MDM_BASE_URL: ${MDM_BASE_URL:-https://coamo.mdmcloud.com.br}
+      MDM_USERNAME: ${MDM_USERNAME:-}
+      MDM_PASSWORD: ${MDM_PASSWORD:-}
+      MDM_CLIENT_ID: ${MDM_CLIENT_ID:-}
+      MDM_CLIENT_SECRET: ${MDM_CLIENT_SECRET:-}
+      MDM_LICENSE_LIMIT: ${MDM_LICENSE_LIMIT:-15}
+      MDM_ALERT_RECIPIENTS: ${MDM_ALERT_RECIPIENTS:-}
+      SMTP_HOST: ${SMTP_HOST:-mail.coamo.com.br}
+      SMTP_PORT: ${SMTP_PORT:-25}
+      SMTP_FROM: ${SMTP_FROM:-naoresponder@coamo.com.br}
+      TZ: America/Sao_Paulo
+    ports:
+      - "8092:8080"
+    volumes:
+      - mdm-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - commandops_commandops
+
+networks:
+  commandops_commandops:
+    external: true
+
+volumes:
+  mdm-data:

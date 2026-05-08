@@ -6,8 +6,8 @@ modules:
   section: devices
   permission: mdm
   health_path: /health
-  container_name: commandops-mdm-ms
-  frontend_url: ''
+  container_name: commandops-mdm-module
+  frontend_url: 'http://localhost:8092'
 - id: ad_ldap
   name: AD / Usuários
   version: 1.0.0
