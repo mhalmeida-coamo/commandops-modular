@@ -89,7 +89,7 @@ export function ModuleLoader({ module: mod, moduleProps }: Props) {
         ref={iframeRef}
         src={mod.frontend_url}
         title={mod.name}
-        style={{ width: "100%", height: "100%", border: "none" }}
+        style={{ width: "100%", flex: 1, border: "none", minHeight: 0 }}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       />
     </div>
