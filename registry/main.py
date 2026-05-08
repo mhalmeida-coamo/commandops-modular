@@ -37,8 +37,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-LABEL_PREFIX   = "commandops.module"
-POLL_INTERVAL  = int(os.getenv("POLL_INTERVAL", "30"))
+LABEL_PREFIX    = "commandops.module"
+POLL_INTERVAL   = int(os.getenv("POLL_INTERVAL", "30"))
+COMPOSE_PROJECT = os.getenv("COMPOSE_PROJECT", "").strip()
 
 # Estado global
 _modules_cache: list[dict[str, Any]] = []
@@ -83,9 +84,12 @@ def _discover() -> list[dict[str, Any]]:
 
     discovered: list[dict[str, Any]] = []
     try:
+        label_filters: list[str] = [f"{LABEL_PREFIX}=true"]
+        if COMPOSE_PROJECT:
+            label_filters.append(f"com.docker.compose.project={COMPOSE_PROJECT}")
         containers = client.containers.list(
             all=True,  # inclui stopped para reportar health=danger
-            filters={"label": f"{LABEL_PREFIX}=true"},
+            filters={"label": label_filters},
         )
     except Exception as exc:
         _poll_errors += 1
@@ -168,6 +172,7 @@ def health() -> dict[str, Any]:
         "last_poll_at": _last_poll_at,
         "poll_errors": _poll_errors,
         "poll_interval_seconds": POLL_INTERVAL,
+        "compose_project_filter": COMPOSE_PROJECT or None,
     }
 
 
