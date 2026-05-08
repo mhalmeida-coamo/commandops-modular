@@ -22,8 +22,8 @@ modules:
   section: identity
   permission: userlock
   health_path: /health
-  container_name: ''
-  frontend_url: ''
+  container_name: commandops-userlock-module
+  frontend_url: 'http://localhost:8093'
 - id: cadlogin
   name: CADLOGIN
   version: 1.0.0

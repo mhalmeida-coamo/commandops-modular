@@ -1,0 +1,36 @@
+# Módulo Bloqueio de Usuários — stack independente
+# Para subir: docker compose -f /opt/commandops-modular/modules/userlock/docker-compose.yml up -d
+
+services:
+
+  userlock-module:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: commandops-userlock-module
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      SHELL_ORIGIN: ${SHELL_ORIGIN:-http://localhost:3000}
+      USERLOCK_MS_URL: ${USERLOCK_MS_URL:-http://commandops-userlock-ms:8120}
+      DATA_DIR: /data
+      TZ: America/Sao_Paulo
+    ports:
+      - "8093:8080"
+    volumes:
+      - userlock-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - commandops_commandops
+
+networks:
+  commandops_commandops:
+    external: true
+
+volumes:
+  userlock-data:
