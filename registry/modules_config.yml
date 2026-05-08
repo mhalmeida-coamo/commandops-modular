@@ -1,0 +1,97 @@
+# Módulos conhecidos do stack CommandOps.
+# O registry consulta o Docker pelo container_name para obter saúde em tempo real.
+# Não exige nenhuma alteração no projeto original.
+#
+# Para adicionar um novo módulo via auto-registro (sem editar este arquivo),
+# adicione as labels commandops.module.* no container dele.
+
+compose_project: commandops   # usado como filtro secundário na descoberta por labels
+
+modules:
+  - id: mdm
+    name: "MDM (MobiControl)"
+    version: "1.0.0"
+    section: devices
+    permission: mdm
+    health_path: /health
+    container_name: commandops-mdm-ms
+
+  - id: ad_ldap
+    name: "AD / Usuários"
+    version: "1.0.0"
+    section: identity
+    permission: ad_ldap
+    health_path: /health
+    container_name: commandops-ad-ms
+
+  - id: userlock
+    name: "Bloqueio de Usuários"
+    version: "1.0.0"
+    section: identity
+    permission: userlock
+    health_path: /health
+    container_name: commandops-userlock-ms
+
+  - id: cadlogin
+    name: "CADLOGIN"
+    version: "1.0.0"
+    section: identity
+    permission: cadlogin
+    health_path: /health
+    container_name: commandops-cadlogin-ms
+
+  - id: ad_create
+    name: "Criar Estagiário/Terceiro"
+    version: "1.0.0"
+    section: identity
+    permission: ad_create
+    health_path: /health
+    container_name: commandops-ad-create-ms
+
+  - id: smb_cypress
+    name: "Cypress"
+    version: "1.0.0"
+    section: identity
+    permission: smb_cypress
+    health_path: /health
+    container_name: commandops-cypress-ms
+
+  - id: demitidos
+    name: "Demitidos"
+    version: "1.0.0"
+    section: identity
+    permission: demitidos
+    health_path: /health
+    container_name: commandops-demitidos-ms
+
+  - id: ad_transfer
+    name: "Transferência de Funcionário"
+    version: "1.0.0"
+    section: identity
+    permission: ad_transfer
+    health_path: /health
+    container_name: commandops-transfer-ms
+
+  - id: azure_squid
+    name: "Azure/Postfix"
+    version: "1.0.0"
+    section: network
+    permission: azure_squid
+    health_path: /health
+    container_name: commandops-azure-squid-ms
+
+  - id: ssh
+    name: "Internet (SSH)"
+    version: "1.0.0"
+    section: network
+    permission: ssh
+    health_path: /health
+    container_name: commandops-ssh-ms
+
+  - id: vpn
+    name: "VPN"
+    version: "1.0.0"
+    section: network
+    permission: vpn
+    health_path: /health
+    container_name: commandops-vpn-ms

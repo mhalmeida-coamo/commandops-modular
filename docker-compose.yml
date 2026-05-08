@@ -11,11 +11,10 @@ services:
     restart: unless-stopped
     environment:
       POLL_INTERVAL: "30"
-      # Restringe descoberta ao stack Docker Compose deste nome.
-      # Deixar vazio para descobrir em todos os projetos (não recomendado).
-      COMPOSE_PROJECT: "commandops"
+      MODULES_CONFIG: "/app/modules_config.yml"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./registry/modules_config.yml:/app/modules_config.yml:ro
     ports:
       - "9000:9000"
     healthcheck:
