@@ -162,7 +162,7 @@ export function Topbar({ activeModule, user, theme, onThemeToggle, onLogout, onA
             <span className="app-topbar-title-icon">
               <ModuleNavIcon id={activeModule.id} />
             </span>
-            <strong>{activeModule.nav_label}</strong>
+            <strong>{activeModule.name}</strong>
           </>
         ) : (
           <strong>CommandOps</strong>

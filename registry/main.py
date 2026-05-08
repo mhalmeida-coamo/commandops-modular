@@ -126,18 +126,21 @@ def _discover_from_config(
                 health = "warning"
                 status = "unknown"
 
-        result.append({
-            "id":          module_id,
-            "name":        m.get("name", module_id),
-            "version":     m.get("version", "1.0.0"),
-            "section":     m.get("section", ""),
-            "permission":  m.get("permission", module_id),
-            "health_path": m.get("health_path", "/health"),
-            "health":      health,
-            "container":   actual_name,
-            "status":      status,
-            "source":      "config",
-        })
+        entry: dict[str, Any] = {
+            "id":           module_id,
+            "name":         m.get("name", module_id),
+            "version":      m.get("version", "1.0.0"),
+            "section":      m.get("section", ""),
+            "permission":   m.get("permission", module_id),
+            "health_path":  m.get("health_path", "/health"),
+            "health":       health,
+            "container":    actual_name,
+            "status":       status,
+            "source":       "config",
+        }
+        if m.get("frontend_url"):
+            entry["frontend_url"] = m["frontend_url"]
+        result.append(entry)
 
     return result
 

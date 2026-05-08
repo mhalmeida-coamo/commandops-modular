@@ -1,11 +1,4 @@
-import {
-  Component,
-  lazy,
-  Suspense,
-  type ComponentType,
-  type ErrorInfo,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef } from "react";
 import type { ModuleManifest, ModuleProps } from "../types";
 
 type Props = {
@@ -13,84 +6,92 @@ type Props = {
   moduleProps: ModuleProps;
 };
 
-type ErrorState = { hasError: boolean; message: string };
+/** Protocolo postMessage enviado ao iframe quando ele sinalizar READY */
+type InitMessage = {
+  type: "COMMANDOPS_INIT";
+  token: string;
+  theme: string;
+  language: string;
+  user: ModuleProps["user"];
+};
 
-class ModuleErrorBoundary extends Component<
-  { children: ReactNode; moduleId: string },
-  ErrorState
-> {
-  constructor(props: { children: ReactNode; moduleId: string }) {
-    super(props);
-    this.state = { hasError: false, message: "" };
-  }
-
-  static getDerivedStateFromError(err: Error): ErrorState {
-    return { hasError: true, message: err.message };
-  }
-
-  componentDidCatch(err: Error, info: ErrorInfo) {
-    console.error(`[ModuleLoader] Module "${this.props.moduleId}" crashed:`, err, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="module-error">
-          <h3>Módulo indisponível</h3>
-          <p>O módulo "{this.props.moduleId}" encontrou um erro e foi isolado.</p>
-          <p style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 12 }}>
-            {this.state.message}
-          </p>
+function PlaceholderCard({ mod }: { mod: ModuleManifest }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        height: "100%",
+        padding: 40,
+        color: "var(--muted)",
+        textAlign: "center",
+      }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ width: 48, height: 48, opacity: 0.4 }}
+      >
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: "var(--foreground)" }}>
+          {mod.name}
         </div>
-      );
-    }
-    return this.props.children;
-  }
+        <div style={{ fontSize: 13 }}>
+          Módulo em migração para arquitetura modular.
+        </div>
+        <div style={{ fontSize: 12, marginTop: 4, opacity: 0.6 }}>
+          v{mod.version} · {mod.container}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-/**
- * Mapa de módulos conhecidos pelo shell.
- * Cada entrada usa import() estático resolvido pelo Vite em build time —
- * requisito do @originjs/vite-plugin-federation.
- * Adicionar um novo tipo de módulo = nova entrada aqui + declaração no vite.config.ts.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MODULE_REGISTRY: Record<string, ComponentType<any>> = {};
-
-const VpnModule = lazy(() =>
-  // @ts-expect-error — remote declarado no vite.config.ts
-  import("vpn_module/ModuleView").then((m: { default: ComponentType<ModuleProps> }) => ({
-    default: m.default,
-  }))
-);
-MODULE_REGISTRY["vpn"] = VpnModule;
-
 export function ModuleLoader({ module: mod, moduleProps }: Props) {
-  const RemoteComponent = MODULE_REGISTRY[mod.id];
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  if (!RemoteComponent) {
-    return (
-      <div className="module-error">
-        <h3>Módulo não suportado</h3>
-        <p>O módulo "{mod.id}" não está registrado nesta versão do shell.</p>
-      </div>
-    );
+  useEffect(() => {
+    if (!mod.frontend_url) return;
+
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type !== "COMMANDOPS_READY") return;
+      const msg: InitMessage = {
+        type: "COMMANDOPS_INIT",
+        token: moduleProps.token,
+        theme: moduleProps.theme,
+        language: moduleProps.language,
+        user: moduleProps.user,
+      };
+      iframeRef.current?.contentWindow?.postMessage(msg, event.origin || "*");
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [mod.frontend_url, moduleProps]);
+
+  if (!mod.frontend_url) {
+    return <PlaceholderCard mod={mod} />;
   }
 
   return (
-    <ModuleErrorBoundary moduleId={mod.id}>
-      <div className="module-frame">
-        <Suspense
-          fallback={
-            <div className="module-loading">
-              <span className="spinner" />
-              <span>Carregando {mod.name}…</span>
-            </div>
-          }
-        >
-          <RemoteComponent {...moduleProps} />
-        </Suspense>
-      </div>
-    </ModuleErrorBoundary>
+    <div className="module-frame">
+      <iframe
+        ref={iframeRef}
+        src={mod.frontend_url}
+        title={mod.name}
+        style={{ width: "100%", height: "100%", border: "none" }}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      />
+    </div>
   );
 }

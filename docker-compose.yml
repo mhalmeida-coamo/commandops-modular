@@ -1,4 +1,4 @@
-# CommandOps Modular — Projeto paralelo (não altera o projeto original)
+# CommandOps Modular — Stack independente
 # Para subir: docker compose -f /opt/commandops-modular/docker-compose.yml up -d
 
 services:
@@ -26,6 +26,29 @@ services:
     networks:
       - commandops-modular
 
+  shell:
+    build:
+      context: ./shell
+      dockerfile: Dockerfile
+    container_name: commandops-modular-shell
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      module-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - commandops-modular   # para alcançar o module-registry
+      - commandops_commandops # para alcançar o commandops-api (auth + módulos)
+
 networks:
   commandops-modular:
     driver: bridge
+  commandops_commandops:
+    external: true  # rede do projeto original, já existente

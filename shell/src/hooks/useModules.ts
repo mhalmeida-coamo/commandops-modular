@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ModuleManifest } from "../types";
+
+const POLL_MS = 30_000;
 
 type ModulesState = {
   modules: ModuleManifest[];
@@ -10,6 +12,8 @@ type ModulesState = {
 
 export function useModules(token: string | null): ModulesState {
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [state, setState] = useState<ModulesState>({
     modules: [],
     loading: true,
@@ -17,9 +21,7 @@ export function useModules(token: string | null): ModulesState {
     refresh: () => undefined,
   });
 
-  const refresh = useCallback(() => {
-    setRefreshNonce((v) => v + 1);
-  }, []);
+  const refresh = useCallback(() => setRefreshNonce((v) => v + 1), []);
 
   useEffect(() => {
     if (!token) {
@@ -30,29 +32,38 @@ export function useModules(token: string | null): ModulesState {
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true, error: null, refresh }));
 
-    fetch("/registry/modules", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
+    async function fetchModules() {
+      try {
+        const r = await fetch("/registry/modules");
         if (!r.ok) throw new Error(`Registry returned ${r.status}`);
-        return r.json() as Promise<ModuleManifest[]>;
-      })
-      .then((modules) => {
+        const all = (await r.json()) as ModuleManifest[];
+
         if (!cancelled) {
-          const sorted = [...modules]
-            .filter((m) => m.status === "enabled")
-            .sort((a, b) => a.nav_order - b.nav_order);
-          setState({ modules: sorted, loading: false, error: null, refresh });
+          const visible = all
+            .filter((m) => m.health !== "danger")
+            .sort((a, b) =>
+              a.section !== b.section
+                ? a.section.localeCompare(b.section)
+                : a.name.localeCompare(b.name)
+            );
+          setState({ modules: visible, loading: false, error: null, refresh });
         }
-      })
-      .catch((err: Error) => {
+      } catch (err) {
         if (!cancelled) {
-          setState({ modules: [], loading: false, error: err.message, refresh });
+          setState({ modules: [], loading: false, error: (err as Error).message, refresh });
         }
-      });
+      }
+    }
+
+    fetchModules();
+
+    timerRef.current = setInterval(() => {
+      if (!cancelled) fetchModules();
+    }, POLL_MS);
 
     return () => {
       cancelled = true;
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [token, refresh, refreshNonce]);
 

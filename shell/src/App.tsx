@@ -6,7 +6,6 @@ import { useModules } from "./hooks/useModules";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { ModuleLoader } from "./components/ModuleLoader";
-import { AdminPanel } from "./components/AdminPanel";
 
 const TOKEN_KEY = "commandops_token";
 
@@ -25,11 +24,8 @@ function loadAuth(): AuthState {
 }
 
 function saveAuth(state: AuthState) {
-  if (state) {
-    sessionStorage.setItem(TOKEN_KEY, JSON.stringify(state));
-  } else {
-    sessionStorage.removeItem(TOKEN_KEY);
-  }
+  if (state) sessionStorage.setItem(TOKEN_KEY, JSON.stringify(state));
+  else sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function App() {
@@ -37,10 +33,9 @@ export function App() {
   const [language] = useState<AppLanguage>("pt-BR");
   const [auth, setAuth] = useState<AuthState>(loadAuth);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
-  const [showAdmin, setShowAdmin] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const { modules, loading: modulesLoading, refresh: refreshModules } = useModules(auth?.token ?? null);
+  const { modules, loading: modulesLoading } = useModules(auth?.token ?? null);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
@@ -55,19 +50,26 @@ export function App() {
     setLoginLoading(true);
 
     try {
-      const res = await fetch("/registry/auth/token", {
+      // 1. autentica no CommandOps API e obtém o JWT
+      const loginRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginForm),
       });
-
-      if (!res.ok) {
-        const err = (await res.json()) as { detail?: string };
+      if (!loginRes.ok) {
+        const err = (await loginRes.json()) as { detail?: string };
         throw new Error(err.detail ?? "Credenciais inválidas");
       }
+      const { access_token } = (await loginRes.json()) as { access_token: string };
 
-      const data = (await res.json()) as { token: string; user: UserInfo };
-      const state = { token: data.token, user: data.user };
+      // 2. busca dados do usuário com o token recebido
+      const meRes = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      if (!meRes.ok) throw new Error("Não foi possível carregar o perfil do usuário");
+      const user = (await meRes.json()) as UserInfo;
+
+      const state = { token: access_token, user };
       saveAuth(state);
       setAuth(state);
     } catch (err) {
@@ -81,22 +83,10 @@ export function App() {
     saveAuth(null);
     setAuth(null);
     setActiveModuleId(null);
-    setShowAdmin(false);
   }
 
   function handleNavigate(moduleId: string) {
-    setShowAdmin(false);
     setActiveModuleId(moduleId);
-  }
-
-  function handleAdminOpen() {
-    setShowAdmin(true);
-    setActiveModuleId(null);
-  }
-
-  function handleAdminClose() {
-    setShowAdmin(false);
-    refreshModules();
   }
 
   if (!auth) {
@@ -143,55 +133,42 @@ export function App() {
   }
 
   return (
-    <>
-      <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
-        <Sidebar
-          modules={modules}
-          activeModuleId={activeModule?.id ?? null}
-          collapsed={sidebarCollapsed}
-          onNavigate={handleNavigate}
-          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+    <div className={`shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
+      <Sidebar
+        modules={modules}
+        activeModuleId={activeModule?.id ?? null}
+        collapsed={sidebarCollapsed}
+        onNavigate={handleNavigate}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+      />
+
+      <div className="main">
+        <Topbar
+          activeModule={activeModule}
+          user={auth.user}
+          theme={theme}
+          onThemeToggle={toggleTheme}
+          onLogout={handleLogout}
         />
 
-        <div className="main">
-          <Topbar
-            activeModule={activeModule}
-            user={auth.user}
-            theme={theme}
-            onThemeToggle={toggleTheme}
-            onLogout={handleLogout}
-            onAdminOpen={auth.user.is_platform_admin ? handleAdminOpen : undefined}
-          />
-
-          <div className="main-shell">
-            {modulesLoading ? (
-              <div className="module-loading">
-                <span className="spinner" />
-                <span>Carregando módulos…</span>
-              </div>
-            ) : activeModule ? (
-              <ModuleLoader
-                module={activeModule}
-                moduleProps={{
-                  token: auth.token,
-                  user: auth.user,
-                  apiBase: activeModule.api_url,
-                  theme,
-                  language,
-                }}
-              />
-            ) : (
-              <div className="module-loading">
-                <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
-              </div>
-            )}
-          </div>
+        <div className="main-shell">
+          {modulesLoading ? (
+            <div className="module-loading">
+              <span className="spinner" />
+              <span>Carregando módulos…</span>
+            </div>
+          ) : activeModule ? (
+            <ModuleLoader
+              module={activeModule}
+              moduleProps={{ token: auth.token, user: auth.user, theme, language }}
+            />
+          ) : (
+            <div className="module-loading">
+              <span style={{ color: "var(--muted)" }}>Nenhum módulo disponível</span>
+            </div>
+          )}
         </div>
       </div>
-
-      {showAdmin && (
-        <AdminPanel token={auth.token} onClose={handleAdminClose} onModulesChanged={refreshModules} />
-      )}
-    </>
+    </div>
   );
 }
