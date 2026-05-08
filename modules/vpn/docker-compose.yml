@@ -1,0 +1,31 @@
+# Módulo VPN — stack independente
+# Sobe o backend Go + frontend React em um único container.
+# Para subir: docker compose -f /opt/commandops-modular/modules/vpn/docker-compose.yml up -d
+
+services:
+
+  vpn-module:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: commandops-modular-vpn
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      AD_WORKER_URL: ${AD_WORKER_URL:-http://commandops-adworker:8010}
+      AD_WORKER_TOKEN: ${AD_WORKER_TOKEN:-}
+      SHELL_ORIGIN: ${SHELL_ORIGIN:-http://localhost:3000}
+    ports:
+      - "8091:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - commandops_commandops    # alcança commandops-adworker
+
+networks:
+  commandops_commandops:
+    external: true

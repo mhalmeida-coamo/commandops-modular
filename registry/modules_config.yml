@@ -86,5 +86,5 @@ modules:
   section: network
   permission: vpn
   health_path: /health
-  container_name: commandops-vpn-ms
-  frontend_url: ''
+  container_name: commandops-modular-vpn
+  frontend_url: 'http://localhost:8091'

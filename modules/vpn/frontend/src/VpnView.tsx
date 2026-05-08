@@ -4,7 +4,6 @@ import styles from "./VpnView.module.css";
 type ModuleProps = {
   token: string;
   user: { username: string; role: string; is_platform_admin: boolean };
-  apiBase: string;
   theme: "light" | "dark";
   language: "pt-BR" | "en-US";
 };
@@ -35,7 +34,7 @@ const GROUP_ACTION_LABEL: Record<GroupAction, string> = {
   failed: "Falha",
 };
 
-export default function VpnView({ token, apiBase, language, theme }: ModuleProps) {
+export default function VpnView({ token, language, theme }: ModuleProps) {
   const t = (pt: string, en: string) => (language === "pt-BR" ? pt : en);
 
   const [username, setUsername] = useState("");
@@ -62,7 +61,7 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/vpn/process`, {
+      const res = await fetch(`/api/vpn/process`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +92,7 @@ export default function VpnView({ token, apiBase, language, theme }: ModuleProps
     setValidatingStatus(true);
     setError("");
     try {
-      const res = await fetch(`${apiBase}/api/vpn/status?username=${encodeURIComponent(user)}`, {
+      const res = await fetch(`/api/vpn/status?username=${encodeURIComponent(user)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
