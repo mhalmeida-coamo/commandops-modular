@@ -46,8 +46,8 @@ modules:
   section: identity
   permission: smb_cypress
   health_path: /health
-  container_name: ''
-  frontend_url: ''
+  container_name: commandops-cypress-module
+  frontend_url: 'http://localhost:8094'
 - id: demitidos
   name: Demitidos
   version: 1.0.0

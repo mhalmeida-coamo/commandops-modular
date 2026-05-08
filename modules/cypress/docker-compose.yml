@@ -1,0 +1,30 @@
+# Módulo Cypress — stack independente
+# Para subir: docker compose -f /opt/commandops-modular/modules/cypress/docker-compose.yml up -d
+
+services:
+
+  cypress-module:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: commandops-cypress-module
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      SHELL_ORIGIN: ${SHELL_ORIGIN:-http://localhost:3000}
+      CYPRESS_MS_URL: ${CYPRESS_MS_URL:-http://commandops-cypress-ms:8080}
+      TZ: America/Sao_Paulo
+    ports:
+      - "8094:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - commandops_commandops
+
+networks:
+  commandops_commandops:
+    external: true
