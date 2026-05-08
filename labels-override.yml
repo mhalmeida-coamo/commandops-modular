@@ -1,0 +1,125 @@
+# CommandOps Modular — Labels Override
+#
+# Aplica labels commandops.module.* nos containers do projeto original
+# SEM modificar o docker-compose.yml original.
+#
+# Uso:
+#   docker compose \
+#     -f /opt/commandops/app/docker-compose.yml \
+#     -f /opt/commandops-modular/labels-override.yml \
+#     up -d
+#
+# O projeto original continua funcionando normalmente.
+# As labels são apenas metadados — não afetam comportamento.
+
+services:
+
+  mdm_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "mdm"
+      commandops.module.name: "MDM (MobiControl)"
+      commandops.module.section: "devices"
+      commandops.module.permission: "mdm"
+      commandops.module.version: "${MDM_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  cadlogin_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "cadlogin"
+      commandops.module.name: "CADLOGIN"
+      commandops.module.section: "identity"
+      commandops.module.permission: "cadlogin"
+      commandops.module.version: "${CADLOGIN_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  azure_squid_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "azure_squid"
+      commandops.module.name: "Azure/Postfix"
+      commandops.module.section: "network"
+      commandops.module.permission: "azure_squid"
+      commandops.module.version: "${AZURE_SQUID_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  demitidos_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "demitidos"
+      commandops.module.name: "Demitidos"
+      commandops.module.section: "identity"
+      commandops.module.permission: "demitidos"
+      commandops.module.version: "${DEMITIDOS_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  ssh_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "ssh"
+      commandops.module.name: "Internet (SSH)"
+      commandops.module.section: "network"
+      commandops.module.permission: "ssh"
+      commandops.module.version: "${SSH_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  ad_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "ad_ldap"
+      commandops.module.name: "AD / Usuários"
+      commandops.module.section: "identity"
+      commandops.module.permission: "ad_ldap"
+      commandops.module.version: "${AD_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  vpn_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "vpn"
+      commandops.module.name: "VPN"
+      commandops.module.section: "network"
+      commandops.module.permission: "vpn"
+      commandops.module.version: "${VPN_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  ad_create_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "ad_create"
+      commandops.module.name: "Criar Estagiário/Terceiro"
+      commandops.module.section: "identity"
+      commandops.module.permission: "ad_create"
+      commandops.module.version: "${AD_CREATE_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  transfer_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "ad_transfer"
+      commandops.module.name: "Transferência de Funcionário"
+      commandops.module.section: "identity"
+      commandops.module.permission: "ad_transfer"
+      commandops.module.version: "${TRANSFER_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  cypress_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "smb_cypress"
+      commandops.module.name: "Cypress"
+      commandops.module.section: "identity"
+      commandops.module.permission: "smb_cypress"
+      commandops.module.version: "${CYPRESS_MS_VERSION:-1.0.0}"
+      commandops.module.health_path: "/health"
+
+  userlock_ms:
+    labels:
+      commandops.module: "true"
+      commandops.module.id: "userlock"
+      commandops.module.name: "Bloqueio de Usuários"
+      commandops.module.section: "identity"
+      commandops.module.permission: "userlock"
+      commandops.module.version: "${USERLOCK_MS_VERSION:-1.3.3}"
+      commandops.module.health_path: "/health"
