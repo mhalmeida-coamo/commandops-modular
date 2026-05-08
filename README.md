@@ -1,67 +1,53 @@
 # CommandOps Modular
 
-Arquitetura 100% modular do CommandOps, onde cada módulo opera de forma completamente independente com seu próprio backend (FastAPI) e frontend (Vite + React), conectados por um shell central via **Webpack Module Federation**.
+Projeto paralelo para migração progressiva do CommandOps para arquitetura modular.
+**Não interfere no projeto original em `/opt/commandops/app`.**
 
-## Visão geral
-
-```
-shell (host)
-├── carrega módulos em runtime via Module Federation
-├── gerencia autenticação JWT/OIDC centralmente
-├── fornece design system compartilhado (@commandops/ui)
-└── expõe Module Registry API
-
-módulos (remotes)
-├── vpn/        → frontend + backend próprio
-├── mdm/        → frontend + backend próprio
-├── ad/         → frontend + backend próprio
-└── ...
-```
-
-## Tecnologias
-
-| Camada | Tecnologia |
-|--------|-----------|
-| Shell frontend | React 18 + Vite + `@originjs/vite-plugin-federation` |
-| Módulo frontend | React 18 + Vite (remote) |
-| Backend módulos | Python 3.12 + FastAPI |
-| Module Registry | Python 3.12 + FastAPI + PostgreSQL |
-| Gateway | nginx |
-| Orquestração | Docker Compose |
-| Auth | JWT + OIDC (Keycloak) |
-
-## Estrutura do repositório
+## Estrutura
 
 ```
 commandops-modular/
-├── shell/                  # Host — shell puro (auth, sidebar, roteamento)
-├── modules/
-│   └── vpn/                # Módulo piloto
-│       ├── frontend/       # Vite remote
-│       └── backend/        # FastAPI
-├── registry/               # Module Registry API
-├── shared/
-│   └── ui/                 # Design system (@commandops/ui)
-├── gateway/                # nginx
-├── docs/                   # Documentação técnica
-└── docker-compose.yml      # Ambiente local
+├── registry/          # Module Registry — descobre containers via Docker labels
+│   ├── main.py
+│   ├── requirements.txt
+│   └── Dockerfile
+├── shell/             # Shell App (Phase 2+) — host enxuto com iframe por módulo
+├── docs/
+│   └── MODULAR_CHANGELOG.md   # Registro de todas as decisões e mudanças
+└── docker-compose.yml
 ```
 
-## Início rápido
+## Como subir (Phase 1)
 
 ```bash
-# Clonar e subir ambiente local completo
-git clone https://github.com/mhalmeida-coamo/commandops-modular.git
-cd commandops-modular
-make dev
+docker compose -f /opt/commandops-modular/docker-compose.yml up -d
 ```
 
-Acesse: http://localhost:5000
+## Verificar módulos descobertos
 
-## Documentação
+```bash
+curl http://localhost:9000/modules | jq .
+```
 
-- [Escopo de transição](docs/scope.md)
-- [Decisões arquiteturais](docs/architecture.md)
-- [Fases do projeto](docs/phases.md)
-- [Especificação de módulo](docs/module-spec.md)
-- [Guia de desenvolvimento](docs/dev-guide.md)
+## Contrato de labels (cada container de módulo no projeto original)
+
+```yaml
+labels:
+  commandops.module: "true"
+  commandops.module.id: "userlock"
+  commandops.module.name: "Bloqueio de Usuários"
+  commandops.module.section: "identity"        # identity | network | devices
+  commandops.module.permission: "userlock"
+  commandops.module.version: "1.3.3"
+  commandops.module.health_path: "/health"
+```
+
+## Fases
+
+| Fase | O que entrega | Status |
+|---|---|---|
+| Phase 1 | Registry dinâmico via Docker labels + health em tempo real | ✅ Em andamento |
+| Phase 2 | Shell App enxuto + protocolo iframe (token via postMessage) | 🔜 |
+| Phase 3 | Módulo piloto com frontend próprio (UserLock) | 🔜 |
+| Phase 4 | Migração progressiva dos demais módulos | 🔜 |
+| Phase 5 | App.tsx residual zerado | 🔜 |

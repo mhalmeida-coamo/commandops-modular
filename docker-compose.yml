@@ -1,110 +1,29 @@
+# CommandOps Modular — Projeto paralelo (não altera o projeto original)
+# Para subir: docker compose -f /opt/commandops-modular/docker-compose.yml up -d
+
 services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: commandops_registry
-      POSTGRES_USER: commandops
-      POSTGRES_PASSWORD: commandops
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U commandops"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  # ── Module Registry ─────────────────────────────────────────────────────────
-  registry:
+  module-registry:
     build:
-      context: .
-      dockerfile: ./registry/Dockerfile
+      context: ./registry
+      dockerfile: Dockerfile
+    container_name: commandops-module-registry
+    restart: unless-stopped
     environment:
-      POSTGRES_URL: postgresql://commandops:commandops@postgres:5432/commandops_registry
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret-change-in-prod}
-    ports:
-      - "5010:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8000/health >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── VPN AD Worker (Go façade) ───────────────────────────────────────────────
-  vpn_adworker:
-    build:
-      context: .
-      dockerfile: ./services/adworker/Dockerfile
-    environment:
-      AD_WORKER_HOST: 0.0.0.0
-      AD_WORKER_PORT: 8010
-      AD_WORKER_API_TOKEN: ${VPN_AD_WORKER_TOKEN:-trocar-token-vpn}
-      AD_REALM: ${AD_REALM:-COAMO.COM.BR}
-      AD_DOMAIN: ${AD_DOMAIN:-coamo.com.br}
-      AD_BASE_DN: ${AD_BASE_DN:-DC=coamo,DC=com,DC=br}
-      AD_LDAP_SERVER: ${AD_LDAP_SERVER:-admdc01.coamo.com.br}
-      AD_LDAP_PORT: ${AD_LDAP_PORT:-389}
-      AD_KRB5_CONFIG: /etc/krb5.conf
-      AD_KEYTAB_PATH: /run/secrets/svc_infratools_ad.keytab
-      AD_SERVICE_PRINCIPAL: ${AD_SERVICE_PRINCIPAL:-svc_infratools_ad@COAMO.COM.BR}
-      AD_WORKER_AUTO_KINIT: ${AD_WORKER_AUTO_KINIT:-true}
+      POLL_INTERVAL: "30"
     volumes:
-      - ./services/adworker/krb5.conf:/etc/krb5.conf:ro
-      - ${AD_WORKER_KEYTAB_PATH:-./services/adworker/secrets/svc_infratools_ad.keytab}:/run/secrets/svc_infratools_ad.keytab:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - "8011:8010"
+      - "9000:9000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8010/health >/dev/null 2>&1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=3)"]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - commandops-modular
 
-  # ── VPN Module ──────────────────────────────────────────────────────────────
-  vpn:
-    build:
-      context: ./modules/vpn
-      dockerfile: backend/Dockerfile
-    environment:
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
-      SHELL_ORIGIN: http://localhost:5000
-      AD_WORKER_URL: ${AD_WORKER_URL:-http://vpn_adworker:8010}
-      AD_WORKER_TOKEN: ${VPN_AD_WORKER_TOKEN:-}
-    ports:
-      - "5101:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── Gateway (nginx) ─────────────────────────────────────────────────────────
-  gateway:
-    image: nginx:alpine
-    volumes:
-      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "8080:80"
-    depends_on:
-      - vpn
-
-  # ── Shell (frontend host) ───────────────────────────────────────────────────
-  shell:
-    build:
-      context: ./shell
-      dockerfile: Dockerfile
-    ports:
-      - "5000:80"
-    depends_on:
-      registry:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
+networks:
+  commandops-modular:
+    driver: bridge

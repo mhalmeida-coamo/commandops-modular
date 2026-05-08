@@ -1,15 +1,6 @@
-FROM golang:1.26-alpine AS build
-WORKDIR /src
-COPY registry/go.mod registry/go.sum* ./registry/
-WORKDIR /src/registry
-RUN /usr/local/go/bin/go mod download
-COPY registry/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 /usr/local/go/bin/go build -o /out/registry-api ./cmd/registry-api
-
-FROM alpine:3.20
+FROM python:3.12-slim
 WORKDIR /app
-RUN adduser -D -H appuser
-COPY --from=build /out/registry-api /app/registry-api
-USER appuser
-EXPOSE 8000
-CMD ["/app/registry-api"]
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY main.py .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9000"]
