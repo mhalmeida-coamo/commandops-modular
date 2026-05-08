@@ -14,7 +14,7 @@ modules:
   section: identity
   permission: ad_ldap
   health_path: /health
-  container_name: commandops-ad-ms
+  container_name: ''
   frontend_url: ''
 - id: userlock
   name: Bloqueio de Usuários
@@ -22,7 +22,7 @@ modules:
   section: identity
   permission: userlock
   health_path: /health
-  container_name: commandops-userlock-ms
+  container_name: ''
   frontend_url: ''
 - id: cadlogin
   name: CADLOGIN
@@ -30,7 +30,7 @@ modules:
   section: identity
   permission: cadlogin
   health_path: /health
-  container_name: commandops-cadlogin-ms
+  container_name: ''
   frontend_url: ''
 - id: ad_create
   name: Criar Estagiário/Terceiro
@@ -38,7 +38,7 @@ modules:
   section: identity
   permission: ad_create
   health_path: /health
-  container_name: commandops-ad-create-ms
+  container_name: ''
   frontend_url: ''
 - id: smb_cypress
   name: Cypress
@@ -46,7 +46,7 @@ modules:
   section: identity
   permission: smb_cypress
   health_path: /health
-  container_name: commandops-cypress-ms
+  container_name: ''
   frontend_url: ''
 - id: demitidos
   name: Demitidos
@@ -54,7 +54,7 @@ modules:
   section: identity
   permission: demitidos
   health_path: /health
-  container_name: commandops-demitidos-ms
+  container_name: ''
   frontend_url: ''
 - id: ad_transfer
   name: Transferência de Funcionário
@@ -62,7 +62,7 @@ modules:
   section: identity
   permission: ad_transfer
   health_path: /health
-  container_name: commandops-transfer-ms
+  container_name: ''
   frontend_url: ''
 - id: azure_squid
   name: Azure/Postfix
@@ -70,7 +70,7 @@ modules:
   section: network
   permission: azure_squid
   health_path: /health
-  container_name: commandops-azure-squid-ms
+  container_name: ''
   frontend_url: ''
 - id: ssh
   name: Internet (SSH)
@@ -78,7 +78,7 @@ modules:
   section: network
   permission: ssh
   health_path: /health
-  container_name: commandops-ssh-ms
+  container_name: ''
   frontend_url: ''
 - id: vpn
   name: VPN
