@@ -5,41 +5,32 @@
 
 ---
 
-## Phase 1 — Registry dinâmico + Sidebar health-aware
+## Phase 1 — Module Registry (projeto paralelo)
 
-**Objetivo:** Containers com `commandops.module=true` são auto-descobertos. Sidebar oculta módulos cujo container está offline e os exibe quando voltam.
+**Objetivo:** Criar um serviço de descoberta de módulos completamente separado do projeto original, que detecta containers via Docker labels e expõe uma API REST com health em tempo real.
+
+**Princípio fundamental:** o projeto original em `/opt/commandops/app` não deve ser alterado em nenhum momento nesta fase.
 
 **Data de início:** 2026-05-08
+**Status:** CONCLUÍDA ✓
 
 ---
 
-### 1.1 Diagnóstico do estado anterior
+### 1.1 Decisão: projeto paralelo, não modificação do existente
 
-| Componente | Estado antes da Phase 1 |
-|---|---|
-| `modules_registry.py` | Dict estático hardcoded com 14 módulos |
-| `module_health.py` | Já fazia probe HTTP nos `/health` dos MSes |
-| Frontend `/modules` poll | Apenas 1x no login e ao visitar "home" |
-| Sidebar visibilidade | Baseada em `module.status === "enabled"` — ignorava `health` |
-| Docker labels | Nenhuma label `commandops.*` nos containers |
-| Docker socket | Não montado na API |
+A primeira abordagem considerada era modificar o projeto original (`modules_registry.py`, `docker-compose.yml`, `App.tsx`). Essa abordagem foi descartada porque:
 
----
+- Misturaria o código de migração com o código de produção estável
+- Qualquer erro derrubaria o sistema existente
+- Não testaria o conceito antes de comprometer o projeto
 
-### 1.2 Decisões de arquitetura
-
-| Decisão | Escolha | Motivo |
-|---|---|---|
-| Descoberta de containers | Docker SDK via socket montado | Fonte de verdade real sem depender de MS estar respondendo |
-| Fallback quando sem socket | Mantém dict estático | Não quebra ambientes sem Docker |
-| Protocolo de registro | Labels Docker `commandops.module.*` | Agnóstico de linguagem, sem código extra no container |
-| Frontend poll interval | 30 segundos | Equilibra reatividade e overhead |
-| Critério de ocultação | `health === "danger"` | Distingue "desabilitado pelo admin" de "container caiu" |
-| Indicador visual | Dot colorido na sidebar | Não invasivo, info rápida |
+**Decisão final:** criar `/opt/commandops-modular/` como repositório Git independente. O projeto original continua intocado.
 
 ---
 
-### 1.3 Contrato de labels Docker (padrão definido)
+### 1.2 Protocolo de registro via Docker labels
+
+Módulos se registram adicionando labels ao seu container — sem código extra, sem dependência de linguagem:
 
 ```yaml
 labels:
@@ -47,98 +38,210 @@ labels:
   commandops.module.id: "<id>"               # ex: userlock
   commandops.module.name: "<Nome Legível>"   # ex: Bloqueio de Usuários
   commandops.module.section: "<seção>"       # identity | network | devices
-  commandops.module.permission: "<perm>"     # permissão necessária
+  commandops.module.permission: "<perm>"     # permissão requerida para exibir
   commandops.module.version: "<semver>"      # ex: 1.3.3
   commandops.module.health_path: "/health"   # path do healthcheck HTTP
 ```
 
+Qualquer container com `commandops.module=true` é automaticamente descoberto.
+
 ---
 
-### 1.4 Arquivos criados/modificados
+### 1.3 Decisões de arquitetura
 
-| Arquivo | Tipo | Descrição |
+| Decisão | Escolha | Motivo |
 |---|---|---|
-| `api/requirements.txt` | modificado | + `docker==7.1.0` |
-| `api/app/services/docker_discovery.py` | criado | Lê socket Docker, retorna módulos via labels |
-| `api/app/services/modules_registry.py` | modificado | Merge estático + descoberta dinâmica |
-| `api/app/services/module_health.py` | modificado | Usa estado Docker como fonte primária de health |
-| `docker-compose.yml` | modificado | Socket montado na API + labels em todos os MSes |
-| `frontuser/src/App.tsx` | modificado | Poll 30s + `resolveModuleStatus` checa health |
-| `frontuser/src/components/Sidebar.tsx` | modificado | Dot de saúde por módulo |
+| Isolamento do projeto original | Projeto paralelo em repositório separado | Zero risco para produção durante desenvolvimento |
+| Aplicação de labels nos containers existentes | Docker Compose override file | Original `docker-compose.yml` nunca é modificado |
+| Descoberta de containers | Docker SDK via socket montado (`/var/run/docker.sock`) | Fonte de verdade real, agnóstico de linguagem |
+| Cache em caso de falha no socket | Retorna cache anterior | Evita flicker de "módulo offline" em erros temporários |
+| Containers parados | `all=True` no `containers.list()` | Detecta containers stopped → health `danger` |
+| Mapeamento de health | Docker state → `healthy/warning/danger` | 3 estados suficientes para UI |
+| Poll de atualização | 30s background loop via `asyncio` | Equilibra reatividade e overhead |
+| Porta do registry | 9000 | Livre no host, não conflita com Portainer |
 
 ---
 
-### 1.5 Mapeamento de módulos → labels aplicadas
+### 1.4 Estrutura do projeto
 
-| container_name | module.id | module.section | module.name |
+```
+/opt/commandops-modular/
+├── docker-compose.yml          # sobe apenas o registry
+├── labels-override.yml         # aplica labels nos containers do projeto original
+├── registry/
+│   ├── Dockerfile
+│   ├── main.py                 # FastAPI — descoberta + endpoints
+│   └── requirements.txt
+├── scripts/
+│   └── validate.sh             # bate nos 3 endpoints e imprime resultado
+├── gateway/
+│   └── nginx.conf              # preparado para Phase 2 (shell + roteamento)
+└── docs/
+    ├── MODULAR_CHANGELOG.md    # este arquivo
+    ├── architecture.md
+    ├── phases.md
+    └── module-spec.md
+```
+
+---
+
+### 1.5 Aplicação das labels nos containers existentes
+
+As labels são aplicadas sem modificar o `docker-compose.yml` original usando um override file:
+
+```bash
+docker compose \
+  -f /opt/commandops/app/docker-compose.yml \
+  -f /opt/commandops-modular/labels-override.yml \
+  up -d
+```
+
+| container | module.id | module.section | module.name |
 |---|---|---|---|
-| commandops-userlock-ms | userlock | identity | Bloqueio de Usuários |
-| commandops-vpn-ms | vpn | network | VPN |
-| commandops-cadlogin-ms | cadlogin | identity | CADLOGIN |
-| commandops-demitidos-ms | demitidos | identity | Demitidos |
 | commandops-mdm-ms | mdm | devices | MDM (MobiControl) |
+| commandops-cadlogin-ms | cadlogin | identity | CADLOGIN |
+| commandops-azure-squid-ms | azure_squid | network | Azure/Postfix |
+| commandops-demitidos-ms | demitidos | identity | Demitidos |
+| commandops-ssh-ms | ssh | network | Internet (SSH) |
+| commandops-ad-ms | ad_ldap | identity | AD / Usuários |
+| commandops-vpn-ms | vpn | network | VPN |
+| commandops-ad-create-ms | ad_create | identity | Criar Estagiário/Terceiro |
 | commandops-transfer-ms | ad_transfer | identity | Transferência de Funcionário |
 | commandops-cypress-ms | smb_cypress | identity | Cypress |
-| commandops-azure-squid-ms | azure_squid | network | Azure/Postfix |
-| commandops-ad-ms | ad_ldap | identity | AD / Usuários |
-| commandops-ad-create-ms | ad_create | identity | Criar Estagiário/Terceiro |
-| commandops-ssh-ms | ssh | network | Internet (SSH) |
-| commandops-observability-ms | observability_ms | — | Observability Core |
+| commandops-userlock-ms | userlock | identity | Bloqueio de Usuários |
 
 ---
 
-### 1.6 Fluxo de descoberta (runtime)
+### 1.6 Endpoints do registry
 
-```
-API container inicia
-      │
-      ▼
-docker_discovery.py conecta ao /var/run/docker.sock
-      │
-      ▼
-Lista todos containers com label commandops.module=true
-      │
-      ▼
-Para cada container extrai labels → constrói ModuleInfo
-      │
-      ├── container.status == "running" + health == "healthy" → health: "healthy"
-      ├── container.status == "running" + sem healthcheck     → proba HTTP /health
-      └── container.status != "running"                       → health: "danger"
-      │
-      ▼
-modules_registry.merge(static_modules, discovered_modules)
-      │   descoberto tem prioridade sobre estático para campos dinâmicos
-      ▼
-GET /modules retorna lista mesclada com health em tempo real
-```
+| Endpoint | Descrição |
+|---|---|
+| `GET /modules` | Lista todos os módulos descobertos (cache 30s) |
+| `GET /modules/{id}` | Detalhe de um módulo específico |
+| `GET /health` | Health do registry + stats (erros, último poll) |
+| `GET /status` | Totais agrupados por estado de health |
 
 ---
 
-### 1.7 Fluxo frontend (sidebar dinâmica)
+### 1.7 Fluxo de descoberta (runtime)
 
 ```
-Login → fetch /modules (1x)
+Registry inicia
       │
       ▼
-setInterval 30s → fetch /modules
+Startup: _discover() roda imediatamente
       │
       ▼
-modules[] atualizado → moduleMap atualizado
+Docker socket → containers.list(all=True, filters={"label": "commandops.module=true"})
       │
       ▼
-resolveModuleStatus(id):
-  if module.health === "danger"  → {enabled: false, reason: "Container offline"}
-  if module.status !== "enabled" → {enabled: false, reason: "Módulo desabilitado"}
-  else                           → {enabled: true}
+Para cada container com label commandops.module.id:
+  ├── container.status != "running"              → health: "danger"
+  ├── container.status == "running" + healthcheck → mapeia Docker health state
+  └── container.status == "running" + sem healthcheck → health: "healthy"
       │
       ▼
-isNavVisible(id) → false se not enabled
+Ordena por (section, name) → _modules_cache atualizado
       │
       ▼
-Sidebar oculta o item automaticamente
-(sem reload, sem intervenção manual)
+Background loop: repete a cada 30s
+      │
+      ▼
+Em caso de erro no socket → mantém cache anterior, incrementa _poll_errors
 ```
 
 ---
 
-*Próximas entradas serão adicionadas conforme a implementação avança.*
+### 1.8 Resultado do teste de validação (2026-05-08)
+
+```
+=== CommandOps Module Registry — Validação ===
+URL: http://localhost:9000
+
+[ Health ]
+{
+    "status": "ok",
+    "modules_discovered": 11,
+    "poll_errors": 0,
+    "poll_interval_seconds": 30
+}
+
+[ Status por saúde ]
+total: 11
+healthy: mdm, ad_ldap, userlock, cadlogin, ad_create,
+         smb_cypress, demitidos, ad_transfer, azure_squid, ssh, vpn
+warning: []
+danger:  []
+
+[ Módulos descobertos ]
+  [ OK ] mdm                    MDM (MobiControl)
+  [ OK ] ad_ldap                AD / Usuários
+  [ OK ] userlock               Bloqueio de Usuários
+  [ OK ] cadlogin               CADLOGIN
+  [ OK ] ad_create              Criar Estagiário/Terceiro
+  [ OK ] smb_cypress            Cypress
+  [ OK ] demitidos              Demitidos
+  [ OK ] ad_transfer            Transferência de Funcionário
+  [ OK ] azure_squid            Azure/Postfix
+  [ OK ] ssh                    Internet (SSH)
+  [ OK ] vpn                    VPN
+```
+
+11/11 módulos descobertos, 0 erros, todos healthy.
+
+---
+
+### 1.9 Commits da Phase 1
+
+| Hash | Mensagem |
+|---|---|
+| `ef4665a` | chore: init commandops-modular |
+| `f14380f` | feat(phase1): module registry com descoberta Docker + docs |
+| `6e09328` | feat(phase1): labels override + melhorias no registry + script de validação |
+
+---
+
+## Phase 2 — Shell App + micro-frontend via iframe (planejado)
+
+**Objetivo:** Criar uma shell app React que substitui o `App.tsx` monolítico. Cada módulo é carregado como `<iframe>` apontando para o container do próprio módulo. Comunicação via `postMessage` (token, tema, idioma).
+
+**Princípio:** a shell consulta o registry para saber quais iframes carregar. Módulos offline simplesmente não aparecem.
+
+**Status:** PENDENTE
+
+### Decisões já tomadas
+
+| Decisão | Escolha |
+|---|---|
+| Comunicação shell → módulo | `postMessage` com protocolo padronizado |
+| Autenticação | Shell injeta JWT via `postMessage` após login |
+| Roteamento | Shell controla URL, iframe renderiza rota interna |
+| Sidebar dinâmica | Baseada em `GET /modules` do registry |
+
+---
+
+## Phase 3 — Módulo piloto migrado (planejado)
+
+**Objetivo:** Migrar um módulo real (candidato: `userlock`) para ter seu próprio repositório com backend + frontend independentes.
+
+**Status:** PENDENTE
+
+---
+
+## Phase 4 — Migração progressiva (planejado)
+
+**Objetivo:** Migrar módulos restantes um a um.
+
+**Status:** PENDENTE
+
+---
+
+## Phase 5 — Zero monolito (planejado)
+
+**Objetivo:** O projeto original `/opt/commandops/app` é aposentado. Toda a lógica vive nos containers de módulo.
+
+**Status:** PENDENTE
+
+---
+
+*Atualizado em: 2026-05-08*
